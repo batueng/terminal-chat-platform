@@ -1,5 +1,5 @@
-# terminal-messaging-app
+# terminal-chat-platform
 
 Terminal based messaging app written in C++
 
-Run, find friends online and message!
+./tcp, find friends online and message!
