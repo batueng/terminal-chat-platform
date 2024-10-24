@@ -56,6 +56,8 @@ private:
 
     void handle_error_message(int clientfd);
 
+    void create_listener_lists(std::string list_str);
+
 public:
 
     MessageServer(int listening_port_in);
