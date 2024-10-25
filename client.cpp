@@ -24,6 +24,7 @@ Client::Client(std::string& log_file) {
 int Client::start_client(int listening_port, std::string& server_ip, int server_port) {
     char buffer[BUFFER_SIZE];
     initiate_ui();
+    connect_to_server(server_ip, server_port);
     while (true) {
         memset(buffer, '\0', BUFFER_SIZE);
         handle_ui(buffer);

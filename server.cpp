@@ -39,7 +39,7 @@ void MessageServer::start_server(int listening_port) {
     std::cerr << "Could not listen." << std::endl;
     exit(1);
   }
-  
+  std::cout << "Message server started." << std::endl;
   fd_set read_fds;
   while (true) {
     FD_ZERO(&read_fds);
@@ -122,6 +122,12 @@ void MessageServer::handle_client_ping(int clientfd) {
   std::cout << "Client pinged online" << std::endl;
 }
 
+void MessageServer::handle_client_match(int clientfd) {}
+
+void MessageServer::handle_client_message(int clientfd) {}
+
+void MessageServer::handle_error_message(int clientfd) {}
+
 void MessageServer::create_listener_lists(std::string list_str) {
   std::stringstream ss;
   for (auto it = listening_clients.begin(); it != listening_clients.end();) {
@@ -131,5 +137,7 @@ void MessageServer::create_listener_lists(std::string list_str) {
 }
 
 int main() {
+  MessageServer server;
+  server.start_server(1800);
   return 0;
 }
