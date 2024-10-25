@@ -11,6 +11,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <fstream>
 
 #include <sys/socket.h>
 #include <unistd.h>
@@ -33,22 +34,22 @@ private:
     // Map clients
     std::unordered_map<int,int> matched_clients;
 
-    void make_sockaddr(struct sockaddr_in *addr);
+    void make_sockaddr(struct sockaddr_in *addr, int listening_port);
 
     // Handle new connection from client to server
     void handle_new_connection();
 
     /*  Handle client request
         These can be:
-            - Chosing listening or connecting
-            - Request to connect to client
-            - Message client
+          - Chosing listening or connecting
+          - Request to connect to client
+          - Message client
     */
     void handle_client_request(int clientfd);
 
     void handle_client_listen(int clientfd);
 
-    void handle_client_connect(int clientfd);
+    void handle_client_ping(int clientfd);
 
     void handle_client_match(int clientfd);
     
@@ -60,9 +61,9 @@ private:
 
 public:
 
-    MessageServer(int listening_port_in);
+    MessageServer();
 
-    void start_server();
+    void start_server(int listening_port_in);
 
 };
 

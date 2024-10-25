@@ -10,16 +10,17 @@ const size_t BUFFER_SIZE = 20;
 class Client {
 public:
 
-  Client(int listening_port_in);
+  Client(std::string& log_file);
 
   ~Client();
 
-  int start_client(std::string log_file);
+  int start_client(int listening_port, std::string& server_ip, int server_port);
 
 private:
 
+  std::ofstream fout;
+  int server_fd;
   int client_fd;
-  int listening_port;
 
   int term_width;
   int term_height;
@@ -35,6 +36,11 @@ private:
   void handle_ui(char * buffer);
 
   int handle_user_input(char * buffer);
+
+  int ping_online();
+
+  int connect_to_server(std::string& server_ip, int server_port);
+
 };
 
 #endif
