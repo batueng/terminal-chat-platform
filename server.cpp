@@ -96,16 +96,12 @@ void MessageServer::handle_client_request(int clientfd) {
     case 0:
       handle_client_listen(clientfd);
       break;
-    // Chose to connect
-    case 1:
-      handle_client_ping(clientfd);
-      break;
     // Request to connect to client
-    case 2:
+    case 1:
       handle_client_match(clientfd);
       break;
     // Message client
-    case 3:
+    case 2:
       handle_client_message(clientfd);
       break;
     // Send client an error message
@@ -116,10 +112,6 @@ void MessageServer::handle_client_request(int clientfd) {
 
 void MessageServer::handle_client_listen(int clientfd) {
   listening_clients.insert(clientfd);
-}
-
-void MessageServer::handle_client_ping(int clientfd) {
-  std::cout << "Client pinged online" << std::endl;
 }
 
 void MessageServer::handle_client_match(int clientfd) {}

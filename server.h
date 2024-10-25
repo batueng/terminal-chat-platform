@@ -23,7 +23,6 @@ class MessageServer {
 private:
 
     int socketfd;
-    int listening_port;
 
     // Stores all client fds
     std::unordered_set<int> master;
@@ -49,8 +48,6 @@ private:
 
     void handle_client_listen(int clientfd);
 
-    void handle_client_ping(int clientfd);
-
     void handle_client_match(int clientfd);
     
     void handle_client_message(int clientfd);
@@ -63,7 +60,7 @@ public:
 
     MessageServer();
 
-    void start_server(int listening_port_in);
+    void start_server(int listening_port);
 
 };
 

@@ -17,14 +17,13 @@
 
 volatile sig_atomic_t Client::resized = false;
 
-Client::Client(std::string& log_file) {
+Client::Client(std::string& server_ip_in, int server_port_in, std::string& log_file) : server_ip(server_ip_in), server_port(server_port_in) {
   fout = std::ofstream(log_file);
 }
 
-int Client::start_client(int listening_port, std::string& server_ip, int server_port) {
+int Client::start_client(int listening_port) {
     char buffer[BUFFER_SIZE];
     initiate_ui();
-    connect_to_server(server_ip, server_port);
     while (true) {
         memset(buffer, '\0', BUFFER_SIZE);
         handle_ui(buffer);
@@ -35,7 +34,7 @@ int Client::start_client(int listening_port, std::string& server_ip, int server_
     }
 }
 
-int Client::connect_to_server(std::string& server_ip, int server_port) {
+int Client::connect_to_server() {
   server_fd = socket(AF_INET, SOCK_STREAM, 0);
   
   struct sockaddr_in server_addr;
@@ -106,16 +105,9 @@ int Client::handle_user_input(char * buffer) {
   if (!strcmp(buffer, ":q")) {
     return -1;
   } else if (!strcmp(buffer, ":start")) {
-    ping_online();
+    connect_to_server();
   }
   return 0;
-}
-
-int Client::ping_online() {
-  uint32_t network_order = htonl(1);
-  if (send(server_fd, &network_order, sizeof(network_order), 0) <= 0) {
-    fout << "Error sending ping" << std::endl;
-  }
 }
 
 Client::~Client() {
@@ -125,8 +117,8 @@ Client::~Client() {
 int main() {
   std::string log_file = "log.txt";
   std::string server_ip = "127.0.0.1";
-  Client client(log_file);
-  client.start_client(1600, server_ip, 1800);
+  Client client(server_ip, 1600, log_file);
+  client.start_client(1800);
 
   return 0;
 }
