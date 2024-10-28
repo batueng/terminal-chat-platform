@@ -18,6 +18,7 @@
 volatile sig_atomic_t Client::resized = false;
 
 Client::Client(std::string& server_ip_in, int server_port_in, std::string& log_file) : server_ip(server_ip_in), server_port(server_port_in) {
+  display_name = "";
   fout = std::ofstream(log_file);
 }
 
@@ -91,20 +92,32 @@ void Client::handle_ui(char * buffer) {
     getmaxyx(stdscr, term_width, term_height);
   }
 
+  print_label_window();
+
   // Move the cursor to the new bottom-left corner
-  move(term_height - 1, 0);
+  move(term_height - 1, display_name.size() + 2);
 
   // Only get input up to buffer size
-  getnstr(buffer, BUFFER_SIZE-1);
+  echo();  // Enable echo to show typed characters
+  getnstr(buffer, BUFFER_SIZE - 1);  // Capture input up to BUFFER_SIZE - 1
+  noecho();  // Disable echo after input is captured
 
-  clrtoeol();
-  refresh();
+  // Clear the input field after Enter is pressed
+  move(term_height - 1, display_name.size() + 2);  // Reset cursor position
+  clrtoeol();  // Clear to the end of the line to remove old input
+  refresh();  // Refresh the screen to show the cleared line
+}
+
+void Client::print_label_window() {
+  WINDOW *label_win = newwin(1, display_name.size() + 2, term_height - 1, 0);
+  mvwprintw(label_win, 0, 0, (display_name + "> ").data());  // Print the static label
+  wrefresh(label_win);
 }
 
 int Client::handle_user_input(char * buffer) {
-  if (!strcmp(buffer, ":q")) {
+  if (!strcmp(buffer, "q")) {
     return -1;
-  } else if (!strcmp(buffer, ":start")) {
+  } else if (!strcmp(buffer, "start")) {
     connect_to_server();
   }
   return 0;
@@ -117,8 +130,8 @@ Client::~Client() {
 int main() {
   std::string log_file = "log.txt";
   std::string server_ip = "127.0.0.1";
-  Client client(server_ip, 1600, log_file);
-  client.start_client(1800);
+  Client client(server_ip, 1800, log_file);
+  client.start_client(1600);
 
   return 0;
 }

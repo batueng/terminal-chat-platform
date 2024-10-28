@@ -15,9 +15,7 @@ public:
   ~Client();
 
   int start_client(int listening_port);
-
 private:
-
   std::ofstream fout;
   int server_fd;
   std::string server_ip;
@@ -27,6 +25,8 @@ private:
   int term_width;
   int term_height;
 
+  std::string display_name;
+
   // Flag to indicate window has been resized
   static volatile sig_atomic_t resized;
   struct sigaction sa;
@@ -35,7 +35,12 @@ private:
   static void handle_winch(int sig);
 
   void initiate_ui();
+
   void handle_ui(char * buffer);
+
+  void print_label_window();
+
+  void make_command_input();
 
   int handle_user_input(char * buffer);
 

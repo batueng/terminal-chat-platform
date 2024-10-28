@@ -22,18 +22,29 @@
 class MessageServer {
 private:
 
-    int socketfd;
+    class Session {
+    private:
+        uint64_t id;
+        std::unordered_set<int> session_fds;    
+    public:
+        Session() : id(MessageServer::glob_session_id++) {}
+    };
 
+    static uint64_t glob_session_id;
+
+    int socketfd;
+    int listening_port;
     // Stores all client fds
     std::unordered_set<int> master;
+    std::unordered_set<Session> sessions;
+    std::unordered_map<int, Session*> fd_session;
+    std::unordered_map<std::string, Session*> name_session;
+    std::unordered_map<int, Session*> id_session;
 
     // Stores client fds who are in the listening stage
     std::unordered_set<int> listening_clients;
 
-    // Map clients
-    std::unordered_map<int,int> matched_clients;
-
-    void make_sockaddr(struct sockaddr_in *addr, int listening_port);
+    void make_socket();
 
     // Handle new connection from client to server
     void handle_new_connection();
@@ -58,9 +69,9 @@ private:
 
 public:
 
-    MessageServer();
+    MessageServer(int _listening_port);
 
-    void start_server(int listening_port);
+    void start();
 
 };
 

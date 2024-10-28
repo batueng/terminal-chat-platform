@@ -16,21 +16,24 @@
 
 #include "server.h"
 
-MessageServer::MessageServer() {}
+MessageServer::MessageServer(int _listening_port) : listening_port(_listening_port) {}
 
-void MessageServer::make_sockaddr(struct sockaddr_in *addr, int listening_port) {
-  addr->sin_family = AF_INET;
-  addr->sin_addr.s_addr = htonl(INADDR_ANY);
-  addr->sin_port = htons(listening_port);    
-}
-
-void MessageServer::start_server(int listening_port) {
-
+void MessageServer::make_socket() {
   socketfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  struct sockaddr_in server_addr;
-  make_sockaddr(&server_addr, listening_port);
 
-  if (bind(socketfd, (sockaddr*) &server_addr, sizeof(server_addr)) < 0) {
+  int yes = 1;
+  int success = setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+	if (success < 0) {
+			perror("setsockopt");
+			exit(EXIT_FAILURE);
+	}
+
+  struct sockaddr_in addr;
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_ANY);
+  addr.sin_port = htons(listening_port);    
+
+  if (bind(socketfd, (sockaddr*) &addr, sizeof(addr)) < 0) {
     std::cerr << "Could not bind to socket." << std::endl;
     exit(1);
   }
@@ -39,6 +42,11 @@ void MessageServer::start_server(int listening_port) {
     std::cerr << "Could not listen." << std::endl;
     exit(1);
   }
+}
+
+void MessageServer::start() {
+  make_socket();
+
   std::cout << "Message server started." << std::endl;
   fd_set read_fds;
   while (true) {
@@ -57,10 +65,12 @@ void MessageServer::start_server(int listening_port) {
 
     for (auto it = master.begin(); it != master.end();) {
       int clientfd = *it;
+
       // Is fd ready for reading?
       if (FD_ISSET(clientfd, &read_fds)) {
         handle_client_request(clientfd);
       }
+
       ++it;
     }
   }
@@ -129,7 +139,7 @@ void MessageServer::create_listener_lists(std::string list_str) {
 }
 
 int main() {
-  MessageServer server;
-  server.start_server(1800);
+  MessageServer server(1800);
+  server.start();
   return 0;
 }
