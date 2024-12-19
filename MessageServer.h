@@ -1,8 +1,9 @@
-// server.h
-#ifndef server_h
-#define server_h
+// MessageServer.h
+#ifndef MessageServer_h
+#define MessageServer_h
 
 #include <Session.h>
+#include <ServerSocket.h>
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstring>
@@ -27,6 +28,9 @@ public:
   void run();
 
 private:
+
+  ServerSocket server_sock;
+
   // open socket UserSocket
   // if (WHERE/JOIN/CREATE/CHAT);
   // JOIN/CREATE spin up a new session thread
