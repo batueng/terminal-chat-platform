@@ -1,9 +1,10 @@
-#ifndef session_h
-#define session_h
+#ifndef user_socket_h
+#define user_socket_h
 
-#include "Session.h"
 #include <arpa/inet.h>
 #include <string>
+
+class Session;
 
 class UserSocket {
 public:
@@ -15,6 +16,8 @@ public:
   std::string recv_len(int n);
 
   bool is_in_session() { return in_session; }
+
+  friend class Session;
 
 private:
   int fd;

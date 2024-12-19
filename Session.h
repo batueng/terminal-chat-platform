@@ -1,13 +1,13 @@
 #ifndef session_h
 #define session_h
 
+#include "UserSocket.h"
 #include <boost/thread.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <memory>
 #include <queue>
 #include <unordered_map>
-
-class UserSocket;
+#include <unordered_set>
 
 class Session {
 public:
@@ -17,21 +17,23 @@ public:
 
   void queue_message();
 
-  friend class UserSocket;
-
 private:
+  static uint64_t id;
+
   struct Message {
     std::string user_name;
     std::string text;
   };
 
-  boost::shared_mutex sess_mtx;
+  // messages data/sync
+  boost::mutex message_mtx;
   boost::condition_variable message_cv;
   std::queue<Message> messages;
 
-  std::unordered_map<std::string, std::shared_ptr<UserSocket>> users;
+  // users data/sync
+  boost::shared_mutex users_mtx;
 
-  void welcome_message(int user_fd);
+  std::unordered_set<std::shared_ptr<UserSocket>> users;
 
   void broadcast_message();
 };

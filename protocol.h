@@ -25,9 +25,8 @@ enum class tcp_method {
  *    - CHAT -> std::string message
  */
 struct tcp_hdr_t {
-  size_t hdr_len;
   tcp_method method;
   std::string user_name;
   size_t data_len;
-  uint16_t session_id;
+  uint64_t session_id;
 };
