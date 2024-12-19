@@ -4,25 +4,32 @@
 #include <boost/thread.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <memory>
+#include <queue>
 #include <unordered_map>
 
 class UserSocket;
 
 class Session {
 public:
-  Session(const Session &) = default;
-  Session(Session &&) = default;
-  Session &operator=(const Session &) = default;
-  Session &operator=(Session &&) = default;
+  Session();
+
   void handle_session();
 
   void queue_message();
+
   friend class UserSocket;
 
 private:
-  boost::shared_mutex;
+  struct Message {
+    std::string user_name;
+    std::string text;
+  };
 
-  std::unordered_map<std::string, UserSocket> users;
+  boost::shared_mutex sess_mtx;
+  boost::condition_variable message_cv;
+  std::queue<Message> messages;
+
+  std::unordered_map<std::string, std::shared_ptr<UserSocket>> users;
 
   void welcome_message(int user_fd);
 
