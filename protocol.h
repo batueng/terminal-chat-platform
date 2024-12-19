@@ -49,5 +49,6 @@ enum class tcs_method {
 struct tcs_hdr_t {
   size_t hdr_len;
   tcs_method method;
+  std::string user_name;
   size_t data_len;
 };

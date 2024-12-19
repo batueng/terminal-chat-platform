@@ -18,7 +18,6 @@ std::string UserSocket::recv_len(int n) {
   buf.reserve(n);
 
   int tbr = 0; // total bytes recvd
-
   while (tbr < n) {
     int s = send(fd, buf.c_str() + tbr, n - tbr, 0);
     if (s <= 0) {

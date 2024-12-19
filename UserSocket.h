@@ -19,6 +19,7 @@ public:
 private:
   int fd;
   bool in_session = false;
+  std::string name;
   void cleanup();
 };
 
