@@ -1,8 +1,9 @@
 #include "UserSocket.h"
 #include <unistd.h>
 
-void UserSocket::send_len(char *buf, int n) {
+void UserSocket::send_len(const void *buf, int n) {
   int tbs = 0; // total bytes sent
+  const char *buffer = static_cast<const char *>(buf);
   while (tbs < n) {
     int s = send(fd, buf + tbs, n - tbs, 0);
     if (s <= 0) {

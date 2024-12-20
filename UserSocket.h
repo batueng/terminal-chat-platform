@@ -11,7 +11,7 @@ public:
   UserSocket(int _fd) : fd(_fd) {}
   ~UserSocket() { cleanup(); };
 
-  void send_len(char *buf, int n);
+  void send_len(const void *buf, int n);
 
   std::string recv_len(int n);
 

@@ -1,14 +1,10 @@
 #include <cstddef>
 #include <string>
 
-// =============================== TCP PROTOCOLS ===============================
+// =============================== CONSTANTS ===============================
+const uint16_t MAX_USERNAME = 12;
 
-enum class tcp_method {
-  WHERE = 0x0001,
-  JOIN = 0x0002,
-  CREATE = 0x0003,
-  CHAT = 0x0004
-};
+// =============================== TCP PROTOCOLS ===============================
 
 /* Request/Response Format: <tcp_hdr_t><data>
  * Expected <data> by method:
@@ -24,9 +20,25 @@ enum class tcp_method {
  *    - CREATE -> sockaddr to connect to newly created session
  *    - CHAT -> std::string message
  */
+enum class tcp_method {
+  WHERE = 0x0001,
+  JOIN = 0x0002,
+  CREATE = 0x0003,
+  CHAT = 0x0004,
+  LEAVE = 0x005,
+};
+
+/* tcp_hdr_t: The header of a tcp request or response
+ *  - method: a tcp_method determining the type of request/response
+ *  - data_len: the len of the payload to follow, payload depends on methods
+ *              above
+ *  - session_id: the session_id that this request is going to. Only used for
+ *                chat, leave
+ *  - user_name: the user who sent this message
+ */
 struct tcp_hdr_t {
   tcp_method method;
-  std::string user_name;
   size_t data_len;
-  uint64_t session_id;
+  uint64_t session_id = 0LL;
+  char user_name[MAX_USERNAME];
 };
