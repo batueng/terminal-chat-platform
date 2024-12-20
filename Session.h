@@ -9,25 +9,27 @@
 #include <unordered_map>
 #include <unordered_set>
 
+struct Message {
+  std::string user_name;
+  std::string text;
+};
+
+static uint64_t id_count;
+
 class Session {
 public:
   Session();
 
   void handle_session();
 
-  void queue_message();
+  void queue_msg(Message msg);
 
 private:
-  static uint64_t id;
-
-  struct Message {
-    std::string user_name;
-    std::string text;
-  };
+  uint64_t id;
 
   // messages data/sync
-  boost::mutex message_mtx;
-  boost::condition_variable message_cv;
+  boost::mutex msg_mtx;
+  boost::condition_variable msg_cv;
   std::queue<Message> messages;
 
   // users data/sync
@@ -35,7 +37,7 @@ private:
 
   std::unordered_set<std::shared_ptr<UserSocket>> users;
 
-  void broadcast_message();
+  void broadcast_msg();
 };
 
 #endif

@@ -13,7 +13,7 @@ ServerSocket::ServerSocket(int port) : port(port), fd(-1) { setup(); }
 ServerSocket::~ServerSocket() { cleanup(); }
 
 void ServerSocket::cleanup() {
-  // If socket open close fd
+  // if socket open close fd
   if (fd != -1) {
     close(fd);
     fd = -1;

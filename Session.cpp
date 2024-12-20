@@ -9,13 +9,15 @@ void Session::handle_session() {
         message_cv.wait(msg_lock);
       }
 
-      broadcast_message();
+      broadcast_msg();
     }
   }
 }
 
-void Session::broadcast_message() {
-  boost::shared_lock<boost::shared_mutex> users_lock(users_mtx);
+void Session::broadcast_msg() {
+  // TODO: have to see how other synchronization works
+  boost::shared_lock<boost::shared_mutex> usr_lock(users_mtx);
+
   Message message;
   {
     boost::unique_lock<boost::mutex> msg_lock(message_mtx);
@@ -32,4 +34,9 @@ void Session::broadcast_message() {
 
     user->send_len(&chat_hdr, sizeof(chat_hdr));
   }
+}
+
+void Session::queue_message(Message msg) {
+  boost::unique_lock<boost::mutex> msg_lock(message_mtx);
+  messages.push(msg);
 }
