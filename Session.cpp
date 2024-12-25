@@ -1,34 +1,33 @@
 #include "Session.h"
 #include "protocol.h"
 
-void Session::handle_session() {
-  while (true) {
-    {
-      boost::unique_lock<boost::mutex> msg_lock(message_mtx);
-      while (messages.empty()) {
-        message_cv.wait(msg_lock);
-      }
+Session::Session(std::string _name) : name(_name), id(id_count++) {}
 
-      broadcast_msg();
+void Session::handle_session() {
+  boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
+  while (true) {
+    while (messages.empty()) {
+      msg_cv.wait(msg_lock);
     }
+
+    broadcast_msg();
   }
 }
 
 void Session::broadcast_msg() {
-  // TODO: have to see how other synchronization works
-  boost::shared_lock<boost::shared_mutex> usr_lock(users_mtx);
+  boost::unique_lock<boost::shared_mutex> brdcst_lock(usr_mtx);
 
-  Message message;
+  Message msg;
   {
-    boost::unique_lock<boost::mutex> msg_lock(message_mtx);
-    message = messages.front();
+    boost::shared_lock<boost::mutex> msg_lock(msg_mtx);
+    msg = messages.front();
     messages.pop();
   }
 
   for (auto &user : users) {
     tcp_hdr_t chat_hdr;
     chat_hdr.method = tcp_method::CHAT;
-    chat_hdr.data_len = sizeof(message);
+    chat_hdr.data_len = sizeof(msg);
     chat_hdr.session_id = id;
     std::memcpy(chat_hdr.user_name, user->name.c_str(), MAX_USERNAME);
 
@@ -36,7 +35,13 @@ void Session::broadcast_msg() {
   }
 }
 
-void Session::queue_message(Message msg) {
-  boost::unique_lock<boost::mutex> msg_lock(message_mtx);
+void Session::queue_msg(Message msg) {
+  boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
   messages.push(msg);
+  msg_cv.notify_one();
+}
+
+void Session::add_user(std::shared_ptr<UserSocket> user) {
+  boost::unique_lock<boost::shared_mutex> brdcst_lock(usr_mtx);
+  users.insert(user);
 }

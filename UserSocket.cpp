@@ -3,9 +3,10 @@
 
 void UserSocket::send_len(const void *buf, int n) {
   int tbs = 0; // total bytes sent
-  const char *buffer = static_cast<const char *>(buf);
+  const char *cbuf = static_cast<const char *>(buf);
+
   while (tbs < n) {
-    int s = send(fd, buf + tbs, n - tbs, 0);
+    int s = send(fd, cbuf + tbs, n - tbs, 0);
     if (s <= 0) {
       throw std::runtime_error("failed to send " + std::to_string(n) +
                                " bytes");

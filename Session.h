@@ -18,22 +18,25 @@ static uint64_t id_count;
 
 class Session {
 public:
-  Session();
+  explicit Session(std::string _name);
 
   void handle_session();
 
   void queue_msg(Message msg);
 
+  void add_user(std::shared_ptr<UserSocket> user);
+
 private:
   uint64_t id;
+  std::string name;
+
+  // user data/sync
+  boost::shared_mutex usr_mtx;
 
   // messages data/sync
   boost::mutex msg_mtx;
   boost::condition_variable msg_cv;
   std::queue<Message> messages;
-
-  // users data/sync
-  boost::shared_mutex users_mtx;
 
   std::unordered_set<std::shared_ptr<UserSocket>> users;
 

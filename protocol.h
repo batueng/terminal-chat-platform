@@ -2,6 +2,7 @@
 #include <string>
 
 // =============================== CONSTANTS ===============================
+const uint16_t MAX_SESSION_NAME = 12;
 const uint16_t MAX_USERNAME = 12;
 
 // =============================== TCP PROTOCOLS ===============================
@@ -39,6 +40,6 @@ enum class tcp_method {
 struct tcp_hdr_t {
   tcp_method method;
   size_t data_len;
-  uint64_t session_id = 0LL;
   char user_name[MAX_USERNAME];
+  char session_name[MAX_SESSION_NAME];
 };

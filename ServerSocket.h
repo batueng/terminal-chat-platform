@@ -6,17 +6,18 @@
  * Closes socket on destruction
  *
  * */
+#include <cstdint>
 class ServerSocket {
 public:
   // Able to construct with specified port or without and let os choose
-  ServerSocket(int port);
+  ServerSocket(uint16_t port);
   ServerSocket();
 
   // Destructor closes socket
   ~ServerSocket();
 
   // Return port of socket
-  int get_port();
+  uint16_t get_port();
 
   // Accept connection from one client and return fd of new connection
   int accept_client();
@@ -27,6 +28,6 @@ private:
 
   // Close socket
   void cleanup();
-  int port;
+  uint16_t port;
   int fd;
 };
