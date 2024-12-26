@@ -25,19 +25,12 @@ class MessageServer {
 public:
   MessageServer(uint16_t _listening_port);
 
-  // run select or create client per thread (handle_client)
   void run();
 
 private:
   ServerSocket server_sock;
 
-  // open socket UserSocket
-  // if (WHERE/JOIN/CREATE/CHAT);
-  // JOIN/CREATE spin up a new session thread
-  // CHAT adds a chat message to the session id
   void handle_client(int client_fd);
-
-  void handle_create(std::string &name);
 
   std::shared_ptr<Session> get_session(std::string &name);
   std::shared_ptr<Session> insert_session(std::string &name);
