@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+#include "ClientSocket.h"
 
 const size_t BUFFER_SIZE = 20;
 
@@ -34,6 +35,8 @@ private:
   int server_port;
 
   std::string username;
+
+  ClientSocket client_sock;
 
   int term_rows, term_cols;
 
