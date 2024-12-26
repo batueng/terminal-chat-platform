@@ -22,12 +22,6 @@ void MessageServer::run() {
   }
 }
 
-void MessageServer::handle_create(std::string &name) {
-  if (sessions.contains(name)) {
-    throw DuplicateSessionError(name);
-  }
-}
-
 void MessageServer::handle_client(int client_fd) {
   UserSocket user_sock(client_fd);
   while (true) {
@@ -54,7 +48,7 @@ void MessageServer::handle_client(int client_fd) {
       case tcp_method::CHAT: {
         std::shared_ptr<Session> sess = get_session(sess_name);
         Message msg = {user_name, data.data()};
-        sess->queue_msg(data.data());
+        sess->queue_msg(msg);
       }
       case tcp_method::LEAVE:
         break;
