@@ -23,7 +23,7 @@ void MessageServer::run() {
 }
 
 void MessageServer::handle_create(std::string name) {
-  if (sessions.contains(name)) {
+  if (sessions.count(name)) {
     throw DuplicateSessionError(name);
   }
 }
