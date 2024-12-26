@@ -18,11 +18,11 @@ static uint64_t id_count;
 
 class Session {
 public:
-  explicit Session(std::string _name);
+  explicit Session(std::string &_name);
 
   void handle_session();
 
-  void queue_msg(Message msg);
+  void queue_msg(Message &msg);
 
   void add_user(std::shared_ptr<UserSocket> user);
 

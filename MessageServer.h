@@ -37,17 +37,20 @@ private:
   // CHAT adds a chat message to the session id
   void handle_client(int client_fd);
 
-  void handle_create(std::string name);
+  void handle_create(std::string &name);
 
-  boost::shared_mutex sessions_mtx;
-  std::unordered_map<std::string, Session> sessions; // name -> Session
+  std::shared_ptr<Session> get_session(std::string &name);
+  std::shared_ptr<Session> insert_session(std::string &name);
+
+  boost::shared_mutex sess_mtx;
+  std::unordered_map<std::string, std::shared_ptr<Session>> sessions;
 
   boost::shared_mutex users_mtx;
-  std::unordered_map<std::string, UserSocket> users; // name -> UserSocket
+  std::unordered_map<std::string, UserSocket> users; // username -> UserSocket
 
   boost::shared_mutex where_mtx;
-  std::unordered_map<std::string, std::shared_ptr<Session>>
-      user_sessions; // name -> Session ptr;  used for WHERE
+  std::unordered_map<std::string, std::string>
+      user_sessions; // username -> session_name;  used for WHERE
 };
 
 #endif

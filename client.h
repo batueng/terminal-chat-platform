@@ -2,50 +2,44 @@
 #ifndef client_h
 #define client_h
 
-#include <string>
+#include <cstddef>
+#include <cstdlib>
+#include <iostream>
 #include <signal.h>
+#include <string>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
 
 const size_t BUFFER_SIZE = 20;
 
 class Client {
 public:
-
-  Client(std::string& server_ip, int server_port, std::string& log_file);
+  Client(std::string &server_ip, int server_port);
 
   ~Client();
 
-  int start_client(int listening_port);
+  void run();
+
 private:
-  std::ofstream fout;
-  int server_fd;
-  std::string server_ip;
+  // should implement this to allow terminal resizing
+  // // Flag to indicate window has been resized
+  // static volatile sig_atomic_t resized;
+  // struct sigaction sa;
+  //
+  // // Signal handler for window size
+  // static void handle_winch(int sig);
+  std::string &server_ip;
+
   int server_port;
-  int client_fd;
 
-  int term_width;
-  int term_height;
+  std::string username;
 
-  std::string display_name;
+  int term_rows, term_cols;
 
-  // Flag to indicate window has been resized
-  static volatile sig_atomic_t resized;
-  struct sigaction sa;
+  void print_login_screen();
 
-  // Signal handler for window size
-  static void handle_winch(int sig);
-
-  void initiate_ui();
-
-  void handle_ui(char * buffer);
-
-  void print_label_window();
-
-  void make_command_input();
-
-  int handle_user_input(char * buffer);
-
-  int connect_to_server();
-
+  void print_home_screen();
 };
 
 #endif

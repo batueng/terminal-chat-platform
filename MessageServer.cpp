@@ -22,7 +22,7 @@ void MessageServer::run() {
   }
 }
 
-void MessageServer::handle_create(std::string name) {
+void MessageServer::handle_create(std::string &name) {
   if (sessions.contains(name)) {
     throw DuplicateSessionError(name);
   }
@@ -36,6 +36,9 @@ void MessageServer::handle_client(int client_fd) {
       tcp_hdr_t *tcp_hdr = reinterpret_cast<tcp_hdr_t *>(buf.data());
       std::string data = user_sock.recv_len(tcp_hdr->data_len);
 
+      std::string sess_name = tcp_hdr->session_name;
+      std::string user_name = tcp_hdr->user_name;
+
       switch (tcp_hdr->method) {
       case tcp_method::WHERE:
         break;
@@ -44,17 +47,14 @@ void MessageServer::handle_client(int client_fd) {
         break;
 
       case tcp_method::CREATE: {
-        // data is the session name for create
-        boost::unique_lock<boost::shared_mutex> sess_lock(sessions_mtx);
-        sessions.emplace(tcp_hdr->session_name, Session(tcp_hdr->session_name));
-        sessions[tcp_hdr->session_name].add_user(
-            std::make_shared<UserSocket>(user_sock));
+        std::shared_ptr<Session> sess = insert_session(sess_name);
+        sess->add_user(std::make_shared<UserSocket>(user_sock));
         break;
       }
       case tcp_method::CHAT: {
-        boost::unique_lock<boost::shared_mutex> sess_lock(sessions_mtx);
-        Message message{tcp_hdr->user_name, data};
-        sessions[tcp_hdr->session_name].queue_msg(message);
+        std::shared_ptr<Session> sess = get_session(sess_name);
+        Message msg = {user_name, data.data()};
+        sess->queue_msg(data.data());
       }
       case tcp_method::LEAVE:
         break;
@@ -65,4 +65,23 @@ void MessageServer::handle_client(int client_fd) {
     } catch (...) {
     }
   }
+}
+
+std::shared_ptr<Session> MessageServer::get_session(std::string &name) {
+  boost::shared_lock<boost::shared_mutex> sess_lock(sess_mtx);
+  auto sess = sessions.find(name);
+  if (sess != sessions.end())
+    return sess->second;
+
+  throw SessionNotFound(name);
+}
+
+std::shared_ptr<Session> MessageServer::insert_session(std::string &name) {
+  boost::unique_lock<boost::shared_mutex> sess_lock(sess_mtx);
+  if (!sessions.contains(name)) {
+    sessions[name] = std::make_shared<Session>(Session(name));
+    return sessions[name];
+  }
+
+  throw DuplicateSessionError(name);
 }

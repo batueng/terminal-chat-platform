@@ -1,7 +1,7 @@
 #include "Session.h"
 #include "protocol.h"
 
-Session::Session(std::string _name) : name(_name), id(id_count++) {}
+Session::Session(std::string &_name) : name(_name), id(id_count++) {}
 
 void Session::handle_session() {
   boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
@@ -28,14 +28,15 @@ void Session::broadcast_msg() {
     tcp_hdr_t chat_hdr;
     chat_hdr.method = tcp_method::CHAT;
     chat_hdr.data_len = sizeof(msg);
-    chat_hdr.session_id = id;
+    std::memcpy(chat_hdr.session_name, name.c_str(), MAX_SESSION_NAME);
     std::memcpy(chat_hdr.user_name, user->name.c_str(), MAX_USERNAME);
 
     user->send_len(&chat_hdr, sizeof(chat_hdr));
+    // TODO: Think I still need to actually send message also
   }
 }
 
-void Session::queue_msg(Message msg) {
+void Session::queue_msg(Message &msg) {
   boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
   messages.push(msg);
   msg_cv.notify_one();
