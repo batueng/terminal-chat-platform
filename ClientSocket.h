@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include <string>
+#include <netinet/in.h>
 class ClientSocket {
 public:
   // Able to construct with specified ip and port
