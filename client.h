@@ -29,6 +29,7 @@ private:
   //
   // // Signal handler for window size
   // static void handle_winch(int sig);
+
   std::string &server_ip;
 
   int server_port;

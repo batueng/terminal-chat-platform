@@ -35,6 +35,9 @@ private:
   std::shared_ptr<Session> get_session(std::string &name);
   std::shared_ptr<Session> insert_session(std::string &name);
 
+  UserSocket get_user(std::string &user_name);
+  void insert_user(UserSocket &user_socket);
+
   boost::shared_mutex sess_mtx;
   std::unordered_map<std::string, std::shared_ptr<Session>> sessions;
 

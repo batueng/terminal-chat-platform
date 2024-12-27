@@ -12,3 +12,9 @@ public:
   explicit SessionNotFound(std::string session_name)
       : std::runtime_error(session_name + " does not exist.") {}
 };
+
+class UserNotFound : public std::runtime_error {
+public:
+  explicit UserNotFound(std::string user_name)
+      : std::runtime_error(user_name + " does not exist.") {}
+};

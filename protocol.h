@@ -22,6 +22,7 @@ const uint16_t MAX_USERNAME = 12;
  *    - CHAT -> std::string message
  */
 enum class tcp_method {
+  U_NAME = 0x000,
   WHERE = 0x0001,
   JOIN = 0x0002,
   CREATE = 0x0003,

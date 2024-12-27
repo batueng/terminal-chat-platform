@@ -32,6 +32,10 @@ std::string UserSocket::recv_len(int n) {
   return buf;
 }
 
+std::string UserSocket::get_name() { return name; }
+
+void UserSocket::set_name(std::string _name) { name = _name; }
+
 void UserSocket::cleanup() {
   if (fd != -1) {
     close(fd);

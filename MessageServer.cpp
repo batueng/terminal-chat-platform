@@ -34,12 +34,18 @@ void MessageServer::handle_client(int client_fd) {
       std::string user_name = tcp_hdr->user_name;
 
       switch (tcp_hdr->method) {
+      case tcp_method::U_NAME:
+
+        break;
       case tcp_method::WHERE:
         break;
 
-      case tcp_method::JOIN:
-        break;
+      case tcp_method::JOIN: {
+        std::shared_ptr<Session> sess = get_session(sess_name);
+        sess->add_user(std::make_shared<UserSocket>(user_sock));
 
+        break;
+      }
       case tcp_method::CREATE: {
         std::shared_ptr<Session> sess = insert_session(sess_name);
         sess->add_user(std::make_shared<UserSocket>(user_sock));
@@ -59,6 +65,11 @@ void MessageServer::handle_client(int client_fd) {
     } catch (...) {
     }
   }
+}
+
+UserSocket MessageServer::get_user(std::string &user_name) {
+  boost::shared_lock<boost::shared_mutex> sess_lock(users_mtx);
+  return UserSocket{0};
 }
 
 std::shared_ptr<Session> MessageServer::get_session(std::string &name) {
