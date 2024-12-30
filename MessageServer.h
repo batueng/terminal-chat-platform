@@ -3,6 +3,7 @@
 #define MessageServer_h
 
 #include "Session.h"
+#include "ResponseHandler.h"
 #include <ServerSocket.h>
 #include <arpa/inet.h>
 #include <chrono>
@@ -29,6 +30,7 @@ public:
 
 private:
   ServerSocket server_sock;
+  ResponseHandler response_handler;
 
   void handle_client(int client_fd);
 
