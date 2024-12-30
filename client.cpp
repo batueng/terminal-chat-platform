@@ -1,6 +1,7 @@
 #include "Client.h"
 #include "graphics.h"
 #include "protocol.h"
+#include "ClientSocket.h"
 
 Client::Client(std::string &_server_ip, int _server_port)
     : server_ip(_server_ip), server_port(_server_port) {

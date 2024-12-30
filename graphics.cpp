@@ -35,7 +35,7 @@ std::string apply_grad(const char &ch, int row, int col, int maxDimension) {
 }
 
 void print_ascii_grad(const std::string &asciiArt, int rows, int cols) {
-  const int ascii_rows = 8;
+  // const int ascii_rows = 8;
   const int ascii_cols = 25;
 
   std::string line;
