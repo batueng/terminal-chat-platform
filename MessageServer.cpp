@@ -1,12 +1,3 @@
-#include <arpa/inet.h>
-#include <cstring>
-#include <ctime>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <string>
-#include <sys/socket.h>
-#include <unistd.h>
-
 #include "MessageServer.h"
 #include "errors.h"
 #include "protocol.h"
@@ -15,6 +6,8 @@ MessageServer::MessageServer(uint16_t _listening_port)
     : server_sock(_listening_port) {}
 
 void MessageServer::run() {
+  std::cout << "started message server on port " << server_sock.get_port()
+            << std::endl;
   while (true) {
     boost::thread t(&MessageServer::handle_client, this,
                     server_sock.accept_client());
@@ -23,6 +16,7 @@ void MessageServer::run() {
 }
 
 void MessageServer::handle_client(int client_fd) {
+  // connected
   UserSocket user_sock(client_fd);
   while (true) {
     try {
@@ -35,7 +29,9 @@ void MessageServer::handle_client(int client_fd) {
 
       switch (tcp_hdr->method) {
       case tcp_method::U_NAME:
-
+        user_sock.set_name(user_name);
+        insert_user(user_name, user_sock);
+        // send user_name response
         break;
       case tcp_method::WHERE:
         break;
@@ -43,12 +39,13 @@ void MessageServer::handle_client(int client_fd) {
       case tcp_method::JOIN: {
         std::shared_ptr<Session> sess = get_session(sess_name);
         sess->add_user(std::make_shared<UserSocket>(user_sock));
-
+        // send join response
         break;
       }
       case tcp_method::CREATE: {
         std::shared_ptr<Session> sess = insert_session(sess_name);
         sess->add_user(std::make_shared<UserSocket>(user_sock));
+        // send create response
         break;
       }
       case tcp_method::CHAT: {
@@ -67,26 +64,52 @@ void MessageServer::handle_client(int client_fd) {
   }
 }
 
-UserSocket MessageServer::get_user(std::string &user_name) {
-  boost::shared_lock<boost::shared_mutex> sess_lock(users_mtx);
-  return UserSocket{0};
+template <typename K, typename V, typename E>
+V MessageServer::safe_get(std::unordered_map<K, V> &map, const K &key,
+                          boost::shared_mutex &mtx) {
+  boost::shared_lock<boost::shared_mutex> lock(mtx);
+  auto it = map.find(key);
+  if (it != map.end()) {
+    return it->second;
+  }
+  throw E(key);
+}
+
+template <typename K, typename V, typename E>
+V MessageServer::safe_insert(std::unordered_map<K, V> &map, const K &key,
+                             const V &value, boost::shared_mutex &mtx) {
+  boost::unique_lock<boost::shared_mutex> lock(mtx);
+  if (!map.contains(key)) {
+    map.emplace(key, value);
+    return value;
+  }
+
+  throw E(key);
 }
 
 std::shared_ptr<Session> MessageServer::get_session(std::string &name) {
-  boost::shared_lock<boost::shared_mutex> sess_lock(sess_mtx);
-  auto sess = sessions.find(name);
-  if (sess != sessions.end())
-    return sess->second;
-
-  throw SessionNotFound(name);
+  return safe_get<std::string, std::shared_ptr<Session>, SessionNotFound>(
+      sessions, name, sess_mtx);
 }
 
 std::shared_ptr<Session> MessageServer::insert_session(std::string &name) {
-  boost::unique_lock<boost::shared_mutex> sess_lock(sess_mtx);
-  if (!sessions.contains(name)) {
-    sessions[name] = std::make_shared<Session>(Session(name));
-    return sessions[name];
-  }
+  return safe_insert<std::string, std::shared_ptr<Session>, DuplicateSession>(
+      sessions, name, std::make_shared<Session>(name), sess_mtx);
+}
 
-  throw DuplicateSessionError(name);
+UserSocket MessageServer::get_user(std::string &user_name) {
+  return safe_get<std::string, UserSocket, UserNotFound>(users, user_name,
+                                                         users_mtx);
+}
+
+UserSocket MessageServer::insert_user(std::string &user_name,
+                                      UserSocket &user_socket) {
+  return safe_insert<std::string, UserSocket, DuplicateUser>(
+      users, user_name, user_socket, users_mtx);
+}
+
+int main(int argc, char *argv[]) {
+  MessageServer server(8080);
+  server.run();
+  return 0;
 }

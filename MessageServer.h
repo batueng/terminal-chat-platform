@@ -22,6 +22,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "ServerSocket.h"
+#include "Session.h"
+
 class MessageServer {
 public:
   MessageServer(uint16_t _listening_port);
@@ -38,7 +41,15 @@ private:
   std::shared_ptr<Session> insert_session(std::string &name);
 
   UserSocket get_user(std::string &user_name);
-  void insert_user(UserSocket &user_socket);
+  UserSocket insert_user(std::string &user_name, UserSocket &user_socket);
+
+  template <typename K, typename V, typename E>
+  V safe_get(std::unordered_map<K, V> &map, const K &key,
+             boost::shared_mutex &mtx);
+
+  template <typename K, typename V, typename E>
+  V safe_insert(std::unordered_map<K, V> &map, const K &key, const V &value,
+                boost::shared_mutex &mtx);
 
   boost::shared_mutex sess_mtx;
   std::unordered_map<std::string, std::shared_ptr<Session>> sessions;

@@ -3,6 +3,7 @@
 
 #include "UserSocket.h"
 #include <boost/thread.hpp>
+#include <boost/thread/condition_variable.hpp>
 #include <boost/thread/shared_mutex.hpp>
 #include <memory>
 #include <queue>
