@@ -1,5 +1,6 @@
 #include "Client.h"
 #include "graphics.h"
+#include "protocol.h"
 
 Client::Client(std::string &_server_ip, int _server_port)
     : server_ip(_server_ip), server_port(_server_port) {
@@ -19,6 +20,12 @@ void Client::print_login_screen() {
 
   std::cout << "Enter your username: ";
   std::getline(std::cin, username);
+
+  // TODO: add error checking on username
+  tcp_hdr_t uname_hdr = {tcp_method::U_NAME, 0};
+  std::memcpy(uname_hdr.user_name, username.c_str(), username.size());
+  uname_hdr.user_name[username.size()] = '\0';
+  client_sock.send_len(&uname_hdr, sizeof(tcp_hdr_t));
 }
 
 void Client::print_home_screen() {
@@ -54,7 +61,7 @@ void Client::run() {
 }
 
 int main(int argc, char *argv[]) {
-  std::string server_ip = "localhost";
+  std::string server_ip = "127.0.0.1";
   int server_port = 8080;
   Client c(server_ip, server_port);
   c.run();

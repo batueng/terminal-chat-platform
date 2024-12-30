@@ -8,7 +8,7 @@ class Session;
 
 class UserSocket {
 public:
-  UserSocket(int _fd, std::string _name = "") : fd(_fd), name(_name) {}
+  UserSocket(int _fd) : fd(_fd) {}
   ~UserSocket() { cleanup(); };
 
   void send_len(const void *buf, int n);

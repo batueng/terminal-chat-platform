@@ -4,8 +4,8 @@
 Session::Session(std::string &_name) : name(_name), id(id_count++) {}
 
 void Session::handle_session() {
-  boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
   while (true) {
+    boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
     while (messages.empty()) {
       msg_cv.wait(msg_lock);
     }
@@ -19,7 +19,7 @@ void Session::broadcast_msg() {
 
   Message msg;
   {
-    boost::shared_lock<boost::mutex> msg_lock(msg_mtx);
+    boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
     msg = messages.front();
     messages.pop();
   }

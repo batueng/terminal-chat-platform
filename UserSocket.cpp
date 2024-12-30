@@ -6,27 +6,26 @@ void UserSocket::send_len(const void *buf, int n) {
   const char *cbuf = static_cast<const char *>(buf);
 
   while (tbs < n) {
-    int s = send(fd, cbuf + tbs, n - tbs, 0);
+    int s = send(fd, &cbuf[tbs], n - tbs, 0);
     if (s <= 0) {
       throw std::runtime_error("failed to send " + std::to_string(n) +
                                " bytes");
     }
-    tbs = s;
+    tbs += s;
   }
 }
 
 std::string UserSocket::recv_len(int n) {
-  std::string buf;
-  buf.reserve(n);
+  std::string buf(n, '\0');
 
   int tbr = 0; // total bytes recvd
   while (tbr < n) {
-    int s = send(fd, buf.c_str() + tbr, n - tbr, 0);
-    if (s <= 0) {
+    int r = recv(fd, &buf[tbr], n - tbr, 0);
+    if (r <= 0) {
       throw std::runtime_error("failed to send " + std::to_string(n) +
                                " bytes");
     }
-    tbr = s;
+    tbr += r;
   }
 
   return buf;

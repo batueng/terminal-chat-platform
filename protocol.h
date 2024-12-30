@@ -34,9 +34,9 @@ enum class tcp_method {
  *  - method (short): a tcp_method determining the type of request/response
  *  - data_len (size_t): the len of the payload to follow, payload depends on
  *                       methods above
+ *  - user_name (string): the user who sent this message
  *  - session_name (string): the session_name that this request is going to.
  *                           Only used for chat, join, leave
- *  - user_name (string): the user who sent this message
  */
 struct tcp_hdr_t {
   tcp_method method;

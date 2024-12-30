@@ -1,13 +1,17 @@
 #include "ClientSocket.h"
 #include <arpa/inet.h>
 #include <cstring>
+#include <iostream>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <netdb.h>
 
-ClientSocket::ClientSocket(std::string &ip, uint16_t port) {
+ClientSocket::ClientSocket(std::string &_ip, uint16_t _port) {
+  ip = _ip;
+  port = _port;
+
   setup();
   connect_to_server();
 }
@@ -25,30 +29,33 @@ void ClientSocket::cleanup() {
 }
 
 void ClientSocket::setup() {
-  // Create socket
   fd = socket(AF_INET, SOCK_STREAM, 0);
   if (fd == -1) {
-    throw std::runtime_error("Failed to create socket");
+    throw std::runtime_error("failed to create socket");
   }
 
-  // Set socket to reuse address
   int opt = 1;
   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
     cleanup();
-    throw std::runtime_error("Failed to set socket options");
+    throw std::runtime_error("failed to set socket options");
   }
-  
-  // Configure socket
+
+  std::memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
-  struct hostent* host = gethostbyname(ip.data());
-  memcpy(&addr.sin_addr, host->h_addr, host->h_length);
   addr.sin_port = htons(port);
+
+  if (inet_pton(AF_INET, ip.data(), &addr.sin_addr) <= 0) {
+    cleanup();
+    throw std::runtime_error("invalid address or address not supported");
+  }
 }
 
 void ClientSocket::connect_to_server() {
-  if (connect(fd, (sockaddr*) &addr, sizeof(sockaddr_in)) < 0) {
+  int status = connect(fd, (sockaddr *)&addr, sizeof(sockaddr_in));
+  if (status < 0) {
     cleanup();
-    throw std::runtime_error("Failed to connect to server");
+    throw std::runtime_error("failed to connect to server: " +
+                             std::string(strerror(errno)));
   }
 }
 
@@ -57,31 +64,27 @@ void ClientSocket::send_len(const void *buf, int n) {
   const char *cbuf = static_cast<const char *>(buf);
 
   while (tbs < n) {
-    int s = send(fd, cbuf + tbs, n - tbs, 0);
+    int s = send(fd, &cbuf[tbs], n - tbs, 0);
     if (s <= 0) {
       throw std::runtime_error("failed to send " + std::to_string(n) +
-                               " bytes");
+                               " bytes: " + strerror(errno));
     }
-    tbs = s;
+    tbs += s;
   }
 }
 
 std::string ClientSocket::recv_len(int n) {
-  std::string buf;
-  buf.reserve(n);
+  std::string buf(n, '\0');
 
   int tbr = 0; // total bytes recvd
   while (tbr < n) {
-    int s = send(fd, buf.c_str() + tbr, n - tbr, 0);
-    if (s <= 0) {
+    int r = recv(fd, &buf[tbr], n - tbr, 0);
+    if (r <= 0) {
       throw std::runtime_error("failed to send " + std::to_string(n) +
                                " bytes");
     }
-    tbr = s;
+    tbr += r;
   }
 
   return buf;
 }
-
-
-

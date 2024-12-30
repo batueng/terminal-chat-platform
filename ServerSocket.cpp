@@ -1,6 +1,7 @@
 #include "ServerSocket.h"
 #include <arpa/inet.h>
 #include <cstring>
+#include <iostream>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -62,6 +63,7 @@ void ServerSocket::setup() {
     cleanup();
     throw std::runtime_error("Failed to listen on socket");
   }
+  std::cout << "listening" << std::endl;
 }
 
 uint16_t ServerSocket::get_port() { return port; }
@@ -74,6 +76,7 @@ int ServerSocket::accept_client() {
   int client_fd =
       accept(fd, reinterpret_cast<sockaddr *>(&client_addr), &client_addrlen);
   if (client_fd == -1) {
+    std::cout << "failed to connect" << std::endl;
     throw std::runtime_error("Failed to accept client connection");
   }
 
