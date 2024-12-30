@@ -1,3 +1,6 @@
+#ifndef USERSOCKET_H
+#define USERSOCKET_H
+
 #include "UserSocket.h"
 #include <string>
 class ResponseHandler {
@@ -16,3 +19,5 @@ public:
 
 private:
 };
+
+#endif // USERSOCKET_H
