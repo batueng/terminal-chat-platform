@@ -2,6 +2,9 @@
 #ifndef MessageServer_h
 #define MessageServer_h
 
+#include "Session.h"
+#include "ResponseHandler.h"
+#include <ServerSocket.h>
 #include <arpa/inet.h>
 #include <chrono>
 #include <cstring>
@@ -19,8 +22,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "ServerSocket.h"
-#include "Session.h"
 
 class MessageServer {
 public:
@@ -30,6 +31,7 @@ public:
 
 private:
   ServerSocket server_sock;
+  ResponseHandler response_handler;
 
   void handle_client(int client_fd);
 

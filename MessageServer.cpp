@@ -1,6 +1,11 @@
 #include "MessageServer.h"
+#include "Session.h"
 #include "errors.h"
 #include "protocol.h"
+#include "UserSocket.h"
+#include <boost/thread.hpp>
+#include <string>
+#include <iostream>
 
 MessageServer::MessageServer(uint16_t _listening_port)
     : server_sock(_listening_port) {}

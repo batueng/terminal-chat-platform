@@ -40,6 +40,7 @@ enum class tcp_method {
  */
 struct tcp_hdr_t {
   tcp_method method;
+  int status;
   size_t data_len;
   char user_name[MAX_USERNAME];
   char session_name[MAX_SESSION_NAME];

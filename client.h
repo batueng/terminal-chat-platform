@@ -1,4 +1,4 @@
-// client.h
+// Client.h
 #ifndef client_h
 #define client_h
 

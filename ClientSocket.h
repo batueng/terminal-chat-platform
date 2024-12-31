@@ -6,6 +6,8 @@
  * Closes socket on destruction
  *
  * */
+#ifndef CLIENTSOCKET_H
+#define CLIENTSOCKET_H
 
 #include <cstdint>
 #include <string>
@@ -37,3 +39,4 @@ private:
   int fd;
   struct sockaddr_in addr;
 };
+#endif // CLIENTSOCKET_H
