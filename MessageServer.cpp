@@ -1,11 +1,11 @@
 #include "MessageServer.h"
 #include "Session.h"
+#include "UserSocket.h"
 #include "errors.h"
 #include "protocol.h"
-#include "UserSocket.h"
 #include <boost/thread.hpp>
-#include <string>
 #include <iostream>
+#include <string>
 
 MessageServer::MessageServer(uint16_t _listening_port)
     : server_sock(_listening_port) {}
@@ -21,7 +21,6 @@ void MessageServer::run() {
 }
 
 void MessageServer::handle_client(int client_fd) {
-  std::cout << "hello" << std::endl;
   UserSocket user_sock(client_fd);
   while (true) {
     try {
