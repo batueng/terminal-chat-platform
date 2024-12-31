@@ -40,21 +40,19 @@ void ClientSocket::setup() {
     throw std::runtime_error("failed to set socket options");
   }
 
-  std::memset(&addr, 0, sizeof(addr));
+  memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_port = htons(port);
 
-  if (inet_pton(AF_INET, ip.data(), &addr.sin_addr) <= 0) {
-    cleanup();
-    throw std::runtime_error("invalid address or address not supported");
+  if (inet_pton(AF_INET, ip.c_str(), &addr.sin_addr) <= 0) {
+    throw std::runtime_error("unable to convert ip to network");
   }
 }
 
 void ClientSocket::connect_to_server() {
-  int status = connect(fd, (sockaddr *)&addr, sizeof(sockaddr_in));
-  if (status < 0) {
+  if (connect(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) < 0) {
     cleanup();
-    throw std::runtime_error("failed to connect to server: " +
+    throw std::runtime_error("failed to connect: " +
                              std::string(strerror(errno)));
   }
 }

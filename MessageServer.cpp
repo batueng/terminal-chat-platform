@@ -16,7 +16,7 @@ void MessageServer::run() {
 }
 
 void MessageServer::handle_client(int client_fd) {
-  // connected
+  std::cout << "hello" << std::endl;
   UserSocket user_sock(client_fd);
   while (true) {
     try {
@@ -31,6 +31,7 @@ void MessageServer::handle_client(int client_fd) {
       case tcp_method::U_NAME:
         user_sock.set_name(user_name);
         insert_user(user_name, user_sock);
+        std::cout << "user inserted" << std::endl;
         // send user_name response
         break;
       case tcp_method::WHERE:

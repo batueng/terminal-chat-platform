@@ -3,9 +3,8 @@
 #include "protocol.h"
 
 Client::Client(std::string &_server_ip, int _server_port)
-    : server_ip(_server_ip), server_port(_server_port) {
-  client_sock = ClientSocket(server_ip, server_port);
-}
+    : server_ip(_server_ip), server_port(_server_port),
+      client_sock(server_ip, server_port) {}
 
 Client::~Client() {}
 

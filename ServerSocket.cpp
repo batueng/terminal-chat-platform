@@ -63,7 +63,6 @@ void ServerSocket::setup() {
     cleanup();
     throw std::runtime_error("Failed to listen on socket");
   }
-  std::cout << "listening" << std::endl;
 }
 
 uint16_t ServerSocket::get_port() { return port; }
