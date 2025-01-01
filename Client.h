@@ -2,6 +2,8 @@
 #ifndef client_h
 #define client_h
 
+#include "ClientSocket.h"
+#include "RequestHandler.h"
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
@@ -10,7 +12,6 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-#include "ClientSocket.h"
 
 const size_t BUFFER_SIZE = 20;
 
@@ -31,13 +32,11 @@ private:
   // // Signal handler for window size
   // static void handle_winch(int sig);
 
-  std::string &server_ip;
-
-  int server_port;
-
   std::string username;
 
-  ClientSocket client_sock;
+  std::string curr_sess;
+
+  RequestHandler req_handler;
 
   int term_rows, term_cols;
 

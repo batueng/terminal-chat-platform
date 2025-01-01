@@ -26,6 +26,7 @@ add_executable(server
     Session.cpp
     UserSocket.cpp
     ServerSocket.cpp
+    ResponseHandler.cpp
     protocol.h
     errors.h
 )
@@ -38,6 +39,7 @@ add_executable(tcp
     Client.cpp
     graphics.cpp
     ClientSocket.cpp
+    RequestHandler.cpp
     protocol.h
 )
 

@@ -4,6 +4,7 @@
 #include "errors.h"
 #include "protocol.h"
 #include <boost/thread.hpp>
+#include <exception>
 #include <iostream>
 #include <string>
 
@@ -29,33 +30,34 @@ void MessageServer::handle_client(int client_fd) {
       std::string data = user_sock.recv_len(tcp_hdr->data_len);
 
       std::string sess_name = tcp_hdr->session_name;
-      std::string user_name = tcp_hdr->user_name;
+      std::string username = tcp_hdr->username;
 
       switch (tcp_hdr->method) {
       case tcp_method::U_NAME:
-        user_sock.set_name(user_name);
-        insert_user(user_name, user_sock);
+        user_sock.set_name(username);
+        insert_user(username,
+                    std::make_shared<UserSocket>(std::move(user_sock)));
         std::cout << "user inserted" << std::endl;
-        // send user_name response
+        res_handler.send_username_res(user_sock, tcp_status::SUCCESS);
         break;
       case tcp_method::WHERE:
         break;
 
       case tcp_method::JOIN: {
         std::shared_ptr<Session> sess = get_session(sess_name);
-        sess->add_user(std::make_shared<UserSocket>(user_sock));
+        sess->add_user(std::make_shared<UserSocket>(std::move(user_sock)));
         // send join response
         break;
       }
       case tcp_method::CREATE: {
         std::shared_ptr<Session> sess = insert_session(sess_name);
-        sess->add_user(std::make_shared<UserSocket>(user_sock));
+        sess->add_user(std::make_shared<UserSocket>(std::move(user_sock)));
         // send create response
         break;
       }
       case tcp_method::CHAT: {
         std::shared_ptr<Session> sess = get_session(sess_name);
-        Message msg = {user_name, data.data()};
+        Message msg = {username, data.data()};
         sess->queue_msg(msg);
       }
       case tcp_method::LEAVE:
@@ -64,7 +66,8 @@ void MessageServer::handle_client(int client_fd) {
       default:
         break;
       }
-    } catch (...) {
+    } catch (std::exception &e) {
+      std::cout << e.what() << std::endl;
     }
   }
 }
@@ -85,8 +88,8 @@ V MessageServer::safe_insert(std::unordered_map<K, V> &map, const K &key,
                              const V &value, boost::shared_mutex &mtx) {
   boost::unique_lock<boost::shared_mutex> lock(mtx);
   if (!map.contains(key)) {
-    map.emplace(key, value);
-    return value;
+    auto [it, inserted] = map.emplace(key, value);
+    return it->second;
   }
 
   throw E(key);
@@ -102,15 +105,16 @@ std::shared_ptr<Session> MessageServer::insert_session(std::string &name) {
       sessions, name, std::make_shared<Session>(name), sess_mtx);
 }
 
-UserSocket MessageServer::get_user(std::string &user_name) {
-  return safe_get<std::string, UserSocket, UserNotFound>(users, user_name,
-                                                         users_mtx);
+std::shared_ptr<UserSocket> MessageServer::get_user(std::string &username) {
+  return safe_get<std::string, std::shared_ptr<UserSocket>, UserNotFound>(
+      users, username, users_mtx);
 }
 
-UserSocket MessageServer::insert_user(std::string &user_name,
-                                      UserSocket &user_socket) {
-  return safe_insert<std::string, UserSocket, DuplicateUser>(
-      users, user_name, user_socket, users_mtx);
+std::shared_ptr<UserSocket>
+MessageServer::insert_user(std::string &username,
+                           std::shared_ptr<UserSocket> user_socket) {
+  return safe_insert<std::string, std::shared_ptr<UserSocket>, DuplicateUser>(
+      users, username, user_socket, users_mtx);
 }
 
 int main(int argc, char *argv[]) {

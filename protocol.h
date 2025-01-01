@@ -1,3 +1,6 @@
+#ifndef PROTOCOLS
+#define PROTOCOLS
+
 #include <cstddef>
 #include <string>
 
@@ -10,7 +13,7 @@ const uint16_t MAX_USERNAME = 12;
 /* Request/Response Format: <tcp_hdr_t><data>
  * Expected <data> by method:
  *  - Request:
- *    - WHERE -> std::string user_name
+ *    - WHERE -> std::string username
  *    - JOIN -> uint64_t session_id
  *    - CREATE -> std::string session_name
  *    - CHAT -> std::string message
@@ -30,18 +33,28 @@ enum class tcp_method {
   LEAVE = 0x005,
 };
 
+enum class tcp_status {
+  SUCCESS = 200,
+  USER_NOT_FOUND = 301,
+  SESSION_NOT_FOUND = 302,
+  DUP_USER = 401,
+  DUP_SESS = 402,
+};
+
 /* tcp_hdr_t: The header of a tcp request or response
  *  - method (short): a tcp_method determining the type of request/response
  *  - data_len (size_t): the len of the payload to follow, payload depends on
  *                       methods above
- *  - user_name (string): the user who sent this message
+ *  - username (string): the user who sent this message
  *  - session_name (string): the session_name that this request is going to.
  *                           Only used for chat, join, leave
  */
 struct tcp_hdr_t {
   tcp_method method;
-  int status;
+  tcp_status status;
   size_t data_len;
-  char user_name[MAX_USERNAME];
+  char username[MAX_USERNAME];
   char session_name[MAX_SESSION_NAME];
 };
+
+#endif

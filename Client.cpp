@@ -1,11 +1,13 @@
+#include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
+#include <sstream>
+
 #include "Client.h"
 #include "graphics.h"
 #include "protocol.h"
-#include "ClientSocket.h"
 
 Client::Client(std::string &_server_ip, int _server_port)
-    : server_ip(_server_ip), server_port(_server_port),
-      client_sock(server_ip, server_port) {}
+    : req_handler(_server_ip, _server_port) {}
 
 Client::~Client() {}
 
@@ -22,10 +24,7 @@ void Client::print_login_screen() {
   std::getline(std::cin, username);
 
   // TODO: add error checking on username
-  tcp_hdr_t uname_hdr = {tcp_method::U_NAME, 0};
-  std::memcpy(uname_hdr.user_name, username.c_str(), username.size());
-  uname_hdr.user_name[username.size()] = '\0';
-  client_sock.send_len(&uname_hdr, sizeof(tcp_hdr_t));
+  req_handler.send_username(username);
 }
 
 void Client::print_home_screen() {
@@ -41,21 +40,60 @@ void Client::run() {
   print_login_screen();
   print_home_screen();
 
-  std::string command;
+  std::string line, command;
   while (true) {
     get_terminal_size(term_rows, term_cols);
 
     for (int i = 0; i < term_rows - 28; ++i) {
       std::cout << std::endl;
     }
-    std::cout << ">";
-    std::getline(std::cin, command);
+    std::cout << "> ";
+    std::getline(std::cin, line);
+    boost::trim(line);
 
-    if (command == "exit") {
-      std::cout << "Exiting application. Goodbye!\n";
-      break;
+    if (curr_sess == "") {
+
+      std::istringstream stream(line);
+
+      stream >> command;
+      std::string pattern =
+          "^\\s*" + command + "\\s+" + "[\\x20-\\x7E]{1," +
+          std::to_string(command == "where" ? MAX_USERNAME - 1
+                                            : MAX_SESSION_NAME - 1) +
+          "}$";
+
+      if (command == "join" || command == "create" || command == "where") {
+        // valid pattern
+        if (!boost::regex_match(line, boost::regex(pattern))) {
+          std::cout << "Error: Invalid command. See help for proper format."
+                    << std::endl;
+          continue;
+        }
+
+        // get session_name/username argument
+        std::string arg;
+        stream >> arg;
+
+        // send join/create/where
+        // recv success
+        // set session_name/username
+
+      } else if (line == "help") {
+
+      } else if (line == "exit") {
+        std::cout << "Exiting application. Goodbye!\n";
+        break;
+      } else {
+        std::cout << "Unknown command" << std::endl;
+      }
     } else {
-      std::cout << "Command received: " << command << "\n";
+      // send chats or guard for leave and exit
+      if (line == "leave") {
+
+      } else if (line == "exit") {
+
+      } else {
+      }
     }
   }
 }

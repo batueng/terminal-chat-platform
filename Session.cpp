@@ -29,7 +29,7 @@ void Session::broadcast_msg() {
     chat_hdr.method = tcp_method::CHAT;
     chat_hdr.data_len = sizeof(msg);
     std::memcpy(chat_hdr.session_name, name.c_str(), MAX_SESSION_NAME);
-    std::memcpy(chat_hdr.user_name, user->name.c_str(), MAX_USERNAME);
+    std::memcpy(chat_hdr.username, user->name.c_str(), MAX_USERNAME);
 
     user->send_len(&chat_hdr, sizeof(chat_hdr));
     // TODO: Think I still need to actually send message also
