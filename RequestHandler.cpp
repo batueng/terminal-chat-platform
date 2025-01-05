@@ -22,3 +22,13 @@ void RequestHandler::send_username(std::string username) {
     std::cout << err_mes << std::endl;
   };
 }
+
+void RequestHandler::send_create(std::string& session_name) {}
+
+void RequestHandler::send_join(std::string& session_name) {}
+
+void RequestHandler::send_where(std::string& username) {}
+
+
+
+

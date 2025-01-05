@@ -36,6 +36,29 @@ void Client::print_home_screen() {
   display_help_screen(term_rows, term_cols);
 }
 
+void Client::print_session_screen(std::string &session_name) {
+  // Get the current terminal size
+  get_terminal_size(term_rows, term_cols);
+
+  // Clear the screen
+  clear_screen();
+
+  // Print the session name at the top (centered or just left-aligned)
+  // Here, I'm using a centered print:
+  print_centered("\033[1;36m" + session_name + "\033[0m", term_cols);
+
+  // Leave the rest of the screen mostly empty
+  // You can tweak the `term_rows - 4` part to adjust spacing
+  for (int i = 0; i < term_rows - 4; ++i) {
+    std::cout << std::endl;
+  }
+
+  // Print the prompt at the bottom
+  std::cout << "> ";
+  std::flush(std::cout);
+
+}
+
 void Client::run() {
   print_login_screen();
   print_home_screen();
@@ -75,6 +98,17 @@ void Client::run() {
         stream >> arg;
 
         // send join/create/where
+        if (command == "join") {
+          req_handler.send_join(arg);
+          // Check if success
+          print_session_screen(arg); 
+        } else if (command == "create") {
+          req_handler.send_create(arg);
+          // Check if success
+          print_session_screen(arg);
+        } else if (command == "where") {
+          req_handler.send_where(arg);
+        }
         // recv success
         // set session_name/username
 

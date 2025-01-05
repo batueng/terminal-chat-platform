@@ -43,6 +43,8 @@ private:
   void print_login_screen();
 
   void print_home_screen();
+
+  void print_session_screen(std::string& session_name);
 };
 
 #endif
