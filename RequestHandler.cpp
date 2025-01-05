@@ -25,14 +25,13 @@ void RequestHandler::send_username(std::string username) {
 
 void RequestHandler::send_create(std::string& username, std::string& session_name) {
   tcp_hdr_t create_hdr = {tcp_method::CREATE};
-  create_hdr.data_len = session_name.size();
   std::memcpy(create_hdr.username, username.c_str(), username.size());
   create_hdr.username[username.size()] = '\0';
+  std::memcpy(create_hdr.session_name, session_name.c_str(), session_name.size());
+  create_hdr.session_name[session_name.size()] = '\0';
 
-  // send header
+  // send eader
   client_sock.send_len(&create_hdr, sizeof(tcp_hdr_t));
-  // send session name as data
-  client_sock.send_len(session_name.c_str(), session_name.size());
 
   // recv response
   std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));

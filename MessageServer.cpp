@@ -52,7 +52,9 @@ void MessageServer::handle_client(int client_fd) {
       case tcp_method::CREATE: {
         std::shared_ptr<Session> sess = insert_session(sess_name);
         sess->add_user(std::make_shared<UserSocket>(std::move(user_sock)));
+        std::cout << "create session request: " << sess_name << std::endl;
         // send create response
+        res_handler.send_create_res(user_sock, tcp_status::SUCCESS);
         break;
       }
       case tcp_method::CHAT: {
