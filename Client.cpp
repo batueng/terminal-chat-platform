@@ -101,15 +101,15 @@ void Client::run() {
 
         // send join/create/where
         if (command == "join") {
-          req_handler.send_join(arg);
+          req_handler.send_join(username, arg);
           // Check if success
           print_session_screen(arg); 
         } else if (command == "create") {
-          req_handler.send_create(arg);
+          req_handler.send_create(username, arg);
           // Check if success
           print_session_screen(arg);
         } else if (command == "where") {
-          req_handler.send_where(arg);
+          req_handler.send_where(username, arg);
         }
         // recv success
         // set session_name/username
