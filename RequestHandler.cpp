@@ -30,7 +30,7 @@ void RequestHandler::send_create(std::string& username, std::string& session_nam
   std::memcpy(create_hdr.session_name, session_name.c_str(), session_name.size());
   create_hdr.session_name[session_name.size()] = '\0';
 
-  // send eader
+  // send header
   client_sock.send_len(&create_hdr, sizeof(tcp_hdr_t));
 
   // recv response
@@ -74,7 +74,7 @@ void RequestHandler::send_where(std::string& username, std::string& target_usern
 
   // send header
   client_sock.send_len(&where_hdr, sizeof(tcp_hdr_t));
-  // send session name as data
+  // send username as data
   client_sock.send_len(target_username.c_str(), target_username.size());
 
   // recv response

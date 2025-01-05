@@ -37,7 +37,7 @@ void MessageServer::handle_client(int client_fd) {
         user_sock.set_name(username);
         insert_user(username,
                     std::make_shared<UserSocket>(std::move(user_sock)));
-        std::cout << "user inserted" << std::endl;
+        std::cout << "user inserted: " << username << std::endl;
         res_handler.send_username_res(user_sock, tcp_status::SUCCESS);
         break;
       case tcp_method::WHERE:
