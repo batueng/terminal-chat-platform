@@ -12,6 +12,9 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
+#include <deque>
 
 const size_t BUFFER_SIZE = 20;
 
@@ -36,6 +39,12 @@ private:
 
   std::string curr_sess;
 
+  std::deque<std::string> messages;
+
+  boost::condition_variable messages_cond;
+
+  boost::mutex messages_mtx;
+
   RequestHandler req_handler;
 
   int term_rows, term_cols;
@@ -45,6 +54,8 @@ private:
   void print_home_screen();
 
   void print_session_screen(std::string& session_name);
+
+  void print_messages();
 };
 
 #endif

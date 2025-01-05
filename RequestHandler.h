@@ -12,11 +12,11 @@ public:
 
   void send_username(std::string username);
   
-  void send_create(std::string& session_name);
+  void send_create(std::string& username, std::string& session_name);
 
-  void send_join(std::string& session_name);
+  void send_join(std::string& username, std::string& session_name);
 
-  void send_where(std::string& username);
+  void send_where(std::string& username, std::string& target_username);
 
 private:
   std::string ip;

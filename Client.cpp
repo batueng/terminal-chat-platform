@@ -56,7 +56,9 @@ void Client::print_session_screen(std::string &session_name) {
   // Print the prompt at the bottom
   std::cout << "> ";
   std::flush(std::cout);
-
+  while (true) {
+    messages_mtx.lock();
+  }
 }
 
 void Client::run() {
