@@ -4,17 +4,19 @@
 
 #include "ClientSocket.h"
 #include "RequestHandler.h"
+#include "Session.h"
+
+#include <boost/thread/condition_variable.hpp>
+#include <boost/thread/mutex.hpp>
 #include <cstddef>
 #include <cstdlib>
+#include <deque>
 #include <iostream>
 #include <signal.h>
 #include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-#include <boost/thread/condition_variable.hpp>
-#include <boost/thread/mutex.hpp>
-#include <deque>
 
 const size_t BUFFER_SIZE = 20;
 
@@ -39,11 +41,9 @@ private:
 
   std::string curr_sess;
 
-  std::deque<std::string> messages;
+  boost::mutex msg_mtx;
 
-  boost::condition_variable messages_cond;
-
-  boost::mutex messages_mtx;
+  std::deque<Message> messages;
 
   RequestHandler req_handler;
 
@@ -53,9 +53,11 @@ private:
 
   void print_home_screen();
 
-  void print_session_screen(std::string& session_name);
+  void print_session_screen(std::string &session_name);
 
   void print_messages();
+
+  void messages_listen();
 };
 
 #endif

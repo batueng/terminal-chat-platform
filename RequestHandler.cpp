@@ -1,5 +1,6 @@
 #include "RequestHandler.h"
 #include <iostream>
+#include <utility>
 
 RequestHandler::RequestHandler(std::string &_ip, uint16_t _port)
     : ip(_ip), port(_port), client_sock(_ip, _port) {}
@@ -12,6 +13,43 @@ void RequestHandler::send_username(std::string username) {
 
   client_sock.send_len(&uname_hdr, sizeof(tcp_hdr_t));
 
+  boost::unique_lock<boost::mutex> res_lock(res_mtx);
+  while (res_q.empty()) {
+    res_cv.wait(res_lock);
+  }
+
+  auto [res_hdr, err_msg] = res_q.front();
+  res_q.pop();
+
+  //   // recv response
+  //   std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
+  //   tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res.data());
+  //
+
+  //   // print error if failed
+  if (res_hdr.status != tcp_status::SUCCESS) {
+    std::cout << err_msg << std::endl;
+  };
+}
+
+void RequestHandler::queue_res(tcp_hdr_t res_hdr, std::string msg) {
+  boost::unique_lock<boost::mutex> res_lock(res_mtx);
+  res_q.push({res_hdr, msg});
+  res_cv.notify_one();
+}
+
+void RequestHandler::send_create(std::string &username,
+                                 std::string &session_name) {
+  tcp_hdr_t create_hdr = {tcp_method::CREATE};
+  std::memcpy(create_hdr.username, username.c_str(), username.size());
+  create_hdr.username[username.size()] = '\0';
+  std::memcpy(create_hdr.session_name, session_name.c_str(),
+              session_name.size());
+  create_hdr.session_name[session_name.size()] = '\0';
+
+  // send header
+  client_sock.send_len(&create_hdr, sizeof(tcp_hdr_t));
+
   // recv response
   std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
   tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res.data());
@@ -23,28 +61,8 @@ void RequestHandler::send_username(std::string username) {
   };
 }
 
-void RequestHandler::send_create(std::string& username, std::string& session_name) {
-  tcp_hdr_t create_hdr = {tcp_method::CREATE};
-  std::memcpy(create_hdr.username, username.c_str(), username.size());
-  create_hdr.username[username.size()] = '\0';
-  std::memcpy(create_hdr.session_name, session_name.c_str(), session_name.size());
-  create_hdr.session_name[session_name.size()] = '\0';
-
-  // send header
-  client_sock.send_len(&create_hdr, sizeof(tcp_hdr_t));
-
-  // recv response
-  std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
-  tcp_hdr_t* res_hdr = reinterpret_cast<tcp_hdr_t*> (res.data());
-
-  // print error if failed
-  if (res_hdr->status != tcp_status::SUCCESS) {
-    std::string err_mes = client_sock.recv_len(res_hdr->data_len);
-    std::cout << err_mes << std::endl;
-  };
-}
-
-void RequestHandler::send_join(std::string& username, std::string& session_name) {
+void RequestHandler::send_join(std::string &username,
+                               std::string &session_name) {
   tcp_hdr_t join_hdr = {tcp_method::JOIN};
   std::memcpy(join_hdr.username, username.c_str(), username.size());
   join_hdr.username[username.size()] = '\0';
@@ -63,10 +81,10 @@ void RequestHandler::send_join(std::string& username, std::string& session_name)
     std::string err_mes = client_sock.recv_len(res_hdr->data_len);
     std::cout << err_mes << std::endl;
   };
-  
 }
 
-void RequestHandler::send_where(std::string& username, std::string& target_username) {
+void RequestHandler::send_where(std::string &username,
+                                std::string &target_username) {
   tcp_hdr_t where_hdr = {tcp_method::WHERE};
   where_hdr.data_len = target_username.size();
   std::memcpy(where_hdr.username, username.c_str(), username.size());
@@ -79,16 +97,11 @@ void RequestHandler::send_where(std::string& username, std::string& target_usern
 
   // recv response
   std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
-  tcp_hdr_t* res_hdr = reinterpret_cast<tcp_hdr_t*> (res.data());
+  tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res.data());
 
   // print error if failed
   if (res_hdr->status != tcp_status::SUCCESS) {
     std::string err_mes = client_sock.recv_len(res_hdr->data_len);
     std::cout << err_mes << std::endl;
   };
-  
 }
-
-
-
-

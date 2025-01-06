@@ -59,11 +59,24 @@ void Client::print_session_screen(std::string &session_name) {
     std::flush(std::cout);
     std::getline(std::cin, client_message);
 
-    messages_mtx.lock();
     messages.push_back(client_message);
-    print_messages();
-    messages_mtx.unlock();
+    // print_messages();
+  }
+}
 
+void Client::messages_listen() {
+  while (true) {
+    std::string res_hdr_str =
+        req_handler.client_sock.recv_len(sizeof(tcp_hdr_t));
+    tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res_hdr_str.data());
+    std::string data = req_handler.client_sock.recv_len(res_hdr->data_len);
+
+    if (res_hdr->method == tcp_method::CHAT) {
+      Message *msg = reinterpret_cast<Message *>(data.data());
+      messages.push_back(*msg);
+    } else {
+      req_handler.queue_res(*res_hdr, data);
+    }
   }
 }
 
@@ -109,7 +122,7 @@ void Client::run() {
         if (command == "join") {
           req_handler.send_join(username, arg);
           // Check if success
-          print_session_screen(arg); 
+          print_session_screen(arg);
         } else if (command == "create") {
           req_handler.send_create(username, arg);
           // Check if success
