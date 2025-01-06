@@ -52,12 +52,18 @@ void Client::print_session_screen(std::string &session_name) {
   for (int i = 0; i < term_rows - 4; ++i) {
     std::cout << std::endl;
   }
-
-  // Print the prompt at the bottom
-  std::cout << "> ";
-  std::flush(std::cout);
+  std::string client_message;
   while (true) {
+    // Print the prompt at the bottom
+    std::cout << "> ";
+    std::flush(std::cout);
+    std::getline(std::cin, client_message);
+
     messages_mtx.lock();
+    messages.push_back(client_message);
+    print_messages();
+    messages_mtx.unlock();
+
   }
 }
 
