@@ -111,8 +111,6 @@ void Client::message_listener() {
   }
 }
 
-void Client::print_messages() {}
-
 void Client::run() {
   boost::thread updt_listener(&Client::msg_update_listener, this);
   boost::thread msg_listener(&Client::message_listener, this);
