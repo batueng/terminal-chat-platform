@@ -21,12 +21,6 @@ void RequestHandler::send_username(std::string username) {
   auto [res_hdr, err_msg] = res_q.front();
   res_q.pop();
 
-  //   // recv response
-  //   std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
-  //   tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res.data());
-  //
-
-  //   // print error if failed
   if (res_hdr.status != tcp_status::SUCCESS) {
     std::cout << err_msg << std::endl;
   };
@@ -50,14 +44,19 @@ void RequestHandler::send_create(std::string &username,
   // send header
   client_sock.send_len(&create_hdr, sizeof(tcp_hdr_t));
 
-  // recv response
-  std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
-  tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res.data());
+  boost::unique_lock<boost::mutex> res_lock(res_mtx);
+  while (res_q.empty()) {
+    res_cv.wait(res_lock);
+  }
+
+  std::cout << "got to create" << std::endl;
+
+  auto [res_hdr, err_msg] = res_q.front();
+  res_q.pop();
 
   // print error if failed
-  if (res_hdr->status != tcp_status::SUCCESS) {
-    std::string err_mes = client_sock.recv_len(res_hdr->data_len);
-    std::cout << err_mes << std::endl;
+  if (res_hdr.status != tcp_status::SUCCESS) {
+    std::cout << err_msg << std::endl;
   };
 }
 
@@ -72,14 +71,17 @@ void RequestHandler::send_join(std::string &username,
   // send header
   client_sock.send_len(&join_hdr, sizeof(tcp_hdr_t));
 
-  // recv response
-  std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
-  tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res.data());
+  boost::unique_lock<boost::mutex> res_lock(res_mtx);
+  while (res_q.empty()) {
+    res_cv.wait(res_lock);
+  }
+
+  auto [res_hdr, err_msg] = res_q.front();
+  res_q.pop();
 
   // print error if failed
-  if (res_hdr->status != tcp_status::SUCCESS) {
-    std::string err_mes = client_sock.recv_len(res_hdr->data_len);
-    std::cout << err_mes << std::endl;
+  if (res_hdr.status != tcp_status::SUCCESS) {
+    std::cout << err_msg << std::endl;
   };
 }
 
@@ -95,13 +97,16 @@ void RequestHandler::send_where(std::string &username,
   // send username as data
   client_sock.send_len(target_username.c_str(), target_username.size());
 
-  // recv response
-  std::string res = client_sock.recv_len(sizeof(tcp_hdr_t));
-  tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res.data());
+  boost::unique_lock<boost::mutex> res_lock(res_mtx);
+  while (res_q.empty()) {
+    res_cv.wait(res_lock);
+  }
+
+  auto [res_hdr, err_msg] = res_q.front();
+  res_q.pop();
 
   // print error if failed
-  if (res_hdr->status != tcp_status::SUCCESS) {
-    std::string err_mes = client_sock.recv_len(res_hdr->data_len);
-    std::cout << err_mes << std::endl;
+  if (res_hdr.status != tcp_status::SUCCESS) {
+    std::cout << err_msg << std::endl;
   };
 }

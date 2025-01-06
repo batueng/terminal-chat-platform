@@ -10,7 +10,14 @@
 #include <unordered_map>
 #include <unordered_set>
 
+enum class message_type {
+  CHAT = 0x00,
+  USER_JOIN = 0x01,
+  USER_LEFT = 0x02,
+};
+
 struct Message {
+  message_type msg_t;
   std::string user_name;
   std::string text;
 };

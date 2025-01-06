@@ -41,9 +41,17 @@ private:
 
   std::string curr_sess;
 
+  boost::mutex sess_mtx;
+
+  boost::condition_variable sess_cv;
+
   boost::mutex msg_mtx;
 
+  boost::condition_variable msg_cv;
+
   std::deque<Message> messages;
+
+  bool update_msgs = false;
 
   RequestHandler req_handler;
 
@@ -53,11 +61,15 @@ private:
 
   void print_home_screen();
 
-  void print_session_screen(std::string &session_name);
+  void print_session_screen();
 
-  void print_messages();
+  void print_messages() {}
 
-  void messages_listen();
+  void msg_update_listener();
+
+  void message_listener();
+
+  void queue_chat(Message msg);
 };
 
 #endif

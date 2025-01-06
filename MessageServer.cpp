@@ -59,7 +59,7 @@ void MessageServer::handle_client(int client_fd) {
       }
       case tcp_method::CHAT: {
         std::shared_ptr<Session> sess = get_session(sess_name);
-        Message msg = {username, data.data()};
+        Message msg = {message_type::CHAT, username, data.data()};
         sess->queue_msg(msg);
       }
       case tcp_method::LEAVE:

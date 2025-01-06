@@ -3,6 +3,7 @@
 #include <sstream>
 
 #include "Client.h"
+#include "Session.h"
 #include "graphics.h"
 #include "protocol.h"
 
@@ -36,7 +37,27 @@ void Client::print_home_screen() {
   display_help_screen(term_rows, term_cols);
 }
 
-void Client::print_session_screen(std::string &session_name) {
+void Client::msg_update_listener() {
+  while (true) {
+    boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
+
+    while (!update_msgs) {
+      msg_cv.wait(msg_lock);
+    }
+
+    print_messages();
+    update_msgs = false;
+  }
+}
+
+void Client::queue_chat(Message msg) {
+  boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
+  messages.push_back(msg);
+  update_msgs = true;
+  msg_cv.notify_one();
+}
+
+void Client::print_session_screen() {
   // Get the current terminal size
   get_terminal_size(term_rows, term_cols);
 
@@ -45,7 +66,7 @@ void Client::print_session_screen(std::string &session_name) {
 
   // Print the session name at the top (centered or just left-aligned)
   // Here, I'm using a centered print:
-  print_centered("\033[1;36m" + session_name + "\033[0m", term_cols);
+  print_centered("\033[1;36m" + curr_sess + "\033[0m", term_cols);
 
   // Leave the rest of the screen mostly empty
   // You can tweak the `term_rows - 4` part to adjust spacing
@@ -59,28 +80,41 @@ void Client::print_session_screen(std::string &session_name) {
     std::flush(std::cout);
     std::getline(std::cin, client_message);
 
-    messages.push_back(client_message);
-    // print_messages();
+    if (client_message == ":leave") {
+      boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
+      curr_sess.clear();
+      sess_cv.notify_all();
+      print_home_screen();
+      return;
+    }
+
+    Message msg = {message_type::CHAT, username, client_message};
+    queue_chat(msg);
   }
 }
 
-void Client::messages_listen() {
+void Client::message_listener() {
   while (true) {
     std::string res_hdr_str =
         req_handler.client_sock.recv_len(sizeof(tcp_hdr_t));
     tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res_hdr_str.data());
+
     std::string data = req_handler.client_sock.recv_len(res_hdr->data_len);
 
     if (res_hdr->method == tcp_method::CHAT) {
       Message *msg = reinterpret_cast<Message *>(data.data());
-      messages.push_back(*msg);
+      queue_chat(*msg);
     } else {
+      std::cout << "hello" << std::endl;
       req_handler.queue_res(*res_hdr, data);
     }
   }
 }
 
 void Client::run() {
+  boost::thread updt_listener(&Client::msg_update_listener, this);
+  boost::thread msg_listener(&Client::message_listener, this);
+
   print_login_screen();
   print_home_screen();
 
@@ -95,62 +129,63 @@ void Client::run() {
     std::getline(std::cin, line);
     boost::trim(line);
 
-    if (curr_sess == "") {
+    std::istringstream stream(line);
 
-      std::istringstream stream(line);
+    stream >> command;
+    std::string pattern =
+        "^\\s*" + command + "\\s+" + "[\\x20-\\x7E]{1," +
+        std::to_string(command == "where" ? MAX_USERNAME - 1
+                                          : MAX_SESSION_NAME - 1) +
+        "}$";
 
-      stream >> command;
-      std::string pattern =
-          "^\\s*" + command + "\\s+" + "[\\x20-\\x7E]{1," +
-          std::to_string(command == "where" ? MAX_USERNAME - 1
-                                            : MAX_SESSION_NAME - 1) +
-          "}$";
-
-      if (command == "join" || command == "create" || command == "where") {
-        // valid pattern
-        if (!boost::regex_match(line, boost::regex(pattern))) {
-          std::cout << "Error: Invalid command. See help for proper format."
-                    << std::endl;
-          continue;
-        }
-
-        // get session_name/username argument
-        std::string arg;
-        stream >> arg;
-
-        // send join/create/where
-        if (command == "join") {
-          req_handler.send_join(username, arg);
-          // Check if success
-          print_session_screen(arg);
-        } else if (command == "create") {
-          req_handler.send_create(username, arg);
-          // Check if success
-          print_session_screen(arg);
-        } else if (command == "where") {
-          req_handler.send_where(username, arg);
-        }
-        // recv success
-        // set session_name/username
-
-      } else if (line == "help") {
-
-      } else if (line == "exit") {
-        std::cout << "Exiting application. Goodbye!\n";
-        break;
-      } else {
-        std::cout << "Unknown command" << std::endl;
+    if (command == "join" || command == "create" || command == "where") {
+      // valid pattern
+      if (!boost::regex_match(line, boost::regex(pattern))) {
+        std::cout << "Error: Invalid command. See help for proper format."
+                  << std::endl;
+        continue;
       }
+
+      // get session_name/username argument
+      std::string arg;
+      stream >> arg;
+
+      // send join/create/where
+      if (command == "join") {
+        req_handler.send_join(username, arg);
+        {
+          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
+          curr_sess = arg;
+          sess_cv.notify_all();
+        }
+        print_session_screen();
+
+      } else if (command == "create") {
+        req_handler.send_create(username, arg);
+        {
+          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
+          curr_sess = arg;
+          sess_cv.notify_all();
+        }
+        print_session_screen();
+
+      } else if (command == "where") {
+        req_handler.send_where(username, arg);
+      }
+      // recv success
+      // set session_name/username
+
+    } else if (line == "help") {
+
+    } else if (line == "exit") {
+      std::cout << "Exiting application. Goodbye!\n";
+      break;
     } else {
-      // send chats or guard for leave and exit
-      if (line == "leave") {
-
-      } else if (line == "exit") {
-
-      } else {
-      }
+      std::cout << "Unknown command" << std::endl;
     }
   }
+  updt_listener.join();
+  msg_listener.join();
 }
 
 int main(int argc, char *argv[]) {
