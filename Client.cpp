@@ -67,6 +67,8 @@ void Client::print_session_screen(std::string &session_name) {
   }
 }
 
+void Client::print_messages() {}
+
 void Client::run() {
   print_login_screen();
   print_home_screen();
