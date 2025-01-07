@@ -16,8 +16,7 @@ void ResponseHandler::send_username_res(UserSocket &user_sock,
   }
 }
 
-void ResponseHandler::send_where_res(UserSocket &user_sock,
-                                     tcp_status status,
+void ResponseHandler::send_where_res(UserSocket &user_sock, tcp_status status,
                                      std::string session) {
   tcp_hdr_t where_hdr = {tcp_method::WHERE, status, session.size()};
   std::string username = user_sock.get_name();
@@ -40,7 +39,8 @@ void ResponseHandler::send_join_res(UserSocket &user_sock, tcp_status status) {
   user_sock.send_len(&join_hdr, sizeof(join_hdr));
 }
 
-void ResponseHandler::send_create_res(UserSocket &user_sock, tcp_status status) {
+void ResponseHandler::send_create_res(UserSocket &user_sock,
+                                      tcp_status status) {
   tcp_hdr_t create_hdr = {tcp_method::CREATE, status, 0};
   std::string username = user_sock.get_name();
   std::memcpy(create_hdr.username, username.c_str(), username.size());
@@ -56,5 +56,4 @@ void ResponseHandler::send_leave_res(UserSocket &user_sock, tcp_status status) {
   leave_hdr.username[username.size()] = '\0';
 
   user_sock.send_len(&leave_hdr, sizeof(leave_hdr));
- 
 }

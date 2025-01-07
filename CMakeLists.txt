@@ -27,8 +27,9 @@ add_executable(server
     UserSocket.cpp
     ServerSocket.cpp
     ResponseHandler.cpp
-    protocol.h
     errors.h
+    protocol.h
+    protocol.cpp
 )
 
 # Link Boost libraries to the server executable
@@ -40,6 +41,7 @@ add_executable(tcp
     graphics.cpp
     ClientSocket.cpp
     RequestHandler.cpp
+    protocol.cpp
     protocol.h
 )
 

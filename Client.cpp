@@ -3,7 +3,6 @@
 #include <sstream>
 
 #include "Client.h"
-#include "Session.h"
 #include "graphics.h"
 #include "protocol.h"
 
@@ -103,9 +102,10 @@ void Client::message_listener() {
     std::string data = req_handler.client_sock.recv_len(res_hdr->data_len);
 
     if (res_hdr->method == tcp_method::MESSAGE) {
-      const std::vector<char> recv_msg = std::vector<char>(data.begin(), data.end());
+      const std::vector<char> recv_msg =
+          std::vector<char>(data.begin(), data.end());
       Message msg;
-      msg = msg.deserialize_message(recv_msg);
+      msg = Message::deserialize_message(recv_msg);
       queue_chat(msg);
     } else {
       std::cout << "hello" << std::endl;
@@ -117,7 +117,7 @@ void Client::message_listener() {
 void Client::print_messages() {
   std::cout << "\0337";
   std::cout << "\033[H";
-  
+
   int available_lines = term_rows - 2;
 
   int messages_size = messages.size();
@@ -127,9 +127,9 @@ void Client::print_messages() {
   }
 
   for (int i = start_index; i < messages_size; ++i) {
-    const Message& msg = messages[i];
+    const Message &msg = messages[i];
     std::cout << "\033[K";
-    std::cout << msg.username << ": " << msg.text << std::endl; 
+    std::cout << msg.username << ": " << msg.text << std::endl;
   }
 
   int printed_lines = messages_size - start_index;

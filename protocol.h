@@ -3,8 +3,10 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
-// =============================== CONSTANTS ===============================
+// ================================= CONSTANTS =================================
+//
 const uint16_t MAX_SESSION_NAME = 20;
 const uint16_t MAX_USERNAME = 12;
 
@@ -57,4 +59,21 @@ struct tcp_hdr_t {
   char session_name[MAX_SESSION_NAME];
 };
 
+// ============================= MESSAGE PROTOCOLS =============================
+
+enum class message_type {
+  CHAT = 0x00,
+  USER_JOIN = 0x01,
+  USER_LEFT = 0x02,
+};
+
+struct Message {
+  message_type msg_t;
+  std::string username;
+  std::string text;
+
+  std::vector<char> serialize_message();
+
+  static Message deserialize_message(const std::vector<char> &data);
+};
 #endif

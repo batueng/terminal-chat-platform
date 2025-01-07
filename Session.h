@@ -2,6 +2,8 @@
 #define session_h
 
 #include "UserSocket.h"
+#include "protocol.h"
+
 #include <boost/thread.hpp>
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/shared_mutex.hpp>
@@ -10,22 +12,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-
-enum class message_type {
-  CHAT = 0x00,
-  USER_JOIN = 0x01,
-  USER_LEFT = 0x02,
-};
-
-struct Message {
-  message_type msg_t;
-  std::string username;
-  std::string text;
-
-  Message deserialize_message(const std::vector<char>& data);
-
-  std::vector<char> serialize_message(const Message& msg);
-};
 
 static uint64_t id_count;
 
@@ -48,7 +34,9 @@ private:
 
   // messages data/sync
   boost::mutex msg_mtx;
+
   boost::condition_variable msg_cv;
+
   std::queue<Message> messages;
 
   std::unordered_set<std::shared_ptr<UserSocket>> users;
