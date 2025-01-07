@@ -3,6 +3,7 @@
 
 #include "ClientSocket.h"
 #include "protocol.h"
+#include "Session.h"
 
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
@@ -24,6 +25,8 @@ public:
   void send_join(std::string &username, std::string &session_name);
 
   void send_where(std::string &username, std::string &target_username);
+
+  void send_message(std::string &username, std::string &session_name, Message &msg);
 
   friend class Client;
 

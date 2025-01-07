@@ -110,3 +110,30 @@ void RequestHandler::send_where(std::string &username,
     std::cout << err_msg << std::endl;
   };
 }
+
+void RequestHandler::send_message(std::string &username, std::string &session_name, Message &msg) {
+  tcp_hdr_t message_hdr = {tcp_method::MESSAGE};
+
+  std::vector<char> serialized_msg = msg.serialize_message(msg);
+  message_hdr.data_len = serialized_msg.size();
+
+  std::memcpy(&message_hdr.username, username.c_str(), username.size());
+  message_hdr.username[username.size()] = '\0';
+
+  std::memcpy(&message_hdr.session_name, session_name.c_str(), session_name.size());
+  message_hdr.session_name[session_name.size()] = '\0';
+
+  client_sock.send_len(&message_hdr, sizeof(tcp_hdr_t));
+
+  client_sock.send_len(serialized_msg.data(), serialized_msg.size());
+}
+
+
+
+
+
+
+
+
+
+

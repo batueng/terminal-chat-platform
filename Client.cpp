@@ -89,6 +89,7 @@ void Client::print_session_screen() {
     }
 
     Message msg = {message_type::CHAT, username, client_message};
+    req_handler.send_message(username, msg);
     queue_chat(msg);
   }
 }

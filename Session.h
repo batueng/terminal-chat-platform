@@ -22,53 +22,9 @@ struct Message {
   std::string username;
   std::string text;
 
-  Message deserialize_message(const std::vector<char>& data) {
-        Message msg;
+  Message deserialize_message(const std::vector<char>& data);
 
-        size_t offset = 0;
-
-        memcpy(&msg.msg_t, data.data() + offset, sizeof(msg.msg_t));
-        offset += sizeof(msg.msg_t);
-
-        uint32_t username_length;
-        memcpy(&username_length, data.data() + offset, sizeof(username_length));
-        offset += sizeof(username_length);
-
-        msg.username = std::string(data.data() + offset, username_length);
-        offset += username_length;
-
-        uint32_t text_length;
-        memcpy(&text_length, data.data() + offset, sizeof(text_length));
-        offset += sizeof(text_length);
-
-        msg.text = std::string(data.data() + offset, text_length);
-
-        return msg;
-    }
-
-    std::vector<char> serialize_message(const Message& msg) {
-        std::vector<char> data;
-
-        data.insert(data.end(),
-                    reinterpret_cast<const char*>(&msg.msg_t),
-                    reinterpret_cast<const char*>(&msg.msg_t) + sizeof(msg.msg_t));
-        
-        uint32_t username_length = msg.username.size();
-        data.insert(data.end(),
-                    reinterpret_cast<const char*>(&username_length),
-                    reinterpret_cast<const char*>(&username_length) + sizeof(username_length));
-
-        data.insert(data.end(), msg.username.begin(), msg.username.end());
-
-        uint32_t text_length = msg.text.size();
-        data.insert(data.end(),
-                    reinterpret_cast<const char*>(&text_length),
-                    reinterpret_cast<const char*>(&text_length) + sizeof(text_length));
-
-        data.insert(data.end(), msg.text.begin(), msg.text.end());
-
-        return data;
-    } 
+  std::vector<char> serialize_message(const Message& msg);
 };
 
 static uint64_t id_count;

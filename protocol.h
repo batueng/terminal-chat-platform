@@ -29,7 +29,7 @@ enum class tcp_method {
   WHERE = 0x0001,
   JOIN = 0x0002,
   CREATE = 0x0003,
-  CHAT = 0x0004,
+  MESSAGE = 0x0004,
   LEAVE = 0x005,
 };
 

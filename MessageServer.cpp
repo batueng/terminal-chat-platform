@@ -59,7 +59,7 @@ void MessageServer::handle_client(int client_fd) {
         res_handler.send_create_res(user_sock, tcp_status::SUCCESS);
         break;
       }
-      case tcp_method::CHAT: {
+      case tcp_method::MESSAGE: {
         std::shared_ptr<Session> sess = get_session(sess_name);
         Message msg = {message_type::CHAT, username, data.data()};
         std::cout << username << " sent " << data.data() << std::endl;
