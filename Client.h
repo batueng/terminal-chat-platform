@@ -63,8 +63,8 @@ private:
 
   void print_session_screen();
 
-  void print_messages() {}
-
+  void print_messages();
+  
   void msg_update_listener();
 
   void message_listener();

@@ -102,13 +102,42 @@ void Client::message_listener() {
     std::string data = req_handler.client_sock.recv_len(res_hdr->data_len);
 
     if (res_hdr->method == tcp_method::CHAT) {
-      Message *msg = reinterpret_cast<Message *>(data.data());
-      queue_chat(*msg);
+      const std::vector<char> recv_msg = std::vector<char>(data.begin(), data.end());
+      Message msg;
+      msg = msg.deserialize_message(recv_msg);
+      queue_chat(msg);
     } else {
       std::cout << "hello" << std::endl;
       req_handler.queue_res(*res_hdr, data);
     }
   }
+}
+
+void Client::print_messages() {
+  std::cout << "\0337";
+  std::cout << "\033[H";
+  
+  int available_lines = term_rows - 2;
+
+  int messages_size = messages.size();
+  int start_index = 0;
+  if (messages_size > available_lines) {
+    start_index = messages_size - available_lines;
+  }
+
+  for (int i = start_index; i < messages_size; ++i) {
+    const Message& msg = messages[i];
+    std::cout << "\033[K";
+    std::cout << msg.username << ": " << msg.text << std::endl; 
+  }
+
+  int printed_lines = messages_size - start_index;
+  for (int i = printed_lines; i < available_lines; ++i) {
+    std::cout << "\033[K" << std::endl;
+  }
+
+  std::cout << "\0338";
+  std::cout.flush();
 }
 
 void Client::run() {
