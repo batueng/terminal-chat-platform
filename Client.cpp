@@ -89,7 +89,7 @@ void Client::print_session_screen() {
     }
 
     Message msg = {message_type::CHAT, username, client_message};
-    req_handler.send_message(username, msg);
+    req_handler.send_message(username, curr_sess, msg);
     queue_chat(msg);
   }
 }
@@ -102,7 +102,7 @@ void Client::message_listener() {
 
     std::string data = req_handler.client_sock.recv_len(res_hdr->data_len);
 
-    if (res_hdr->method == tcp_method::CHAT) {
+    if (res_hdr->method == tcp_method::MESSAGE) {
       const std::vector<char> recv_msg = std::vector<char>(data.begin(), data.end());
       Message msg;
       msg = msg.deserialize_message(recv_msg);
