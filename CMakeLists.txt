@@ -20,6 +20,9 @@ find_package(Boost REQUIRED COMPONENTS thread system)
 # Include directories
 include_directories(${Boost_INCLUDE_DIRS})
 
+# Find ncurses
+find_library(NCURSES_LIBRARY ncurses REQUIRED)
+
 # Add executable for the server
 add_executable(server
     MessageServer.cpp
@@ -45,5 +48,5 @@ add_executable(tcp
     protocol.h
 )
 
-# Link Boost libraries to the client executable
-target_link_libraries(tcp ${Boost_LIBRARIES})
+# Link Boost and ncurses libraries to the client executable
+target_link_libraries(tcp ${Boost_LIBRARIES} ${NCURSES_LIBRARY})

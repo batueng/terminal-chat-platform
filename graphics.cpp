@@ -1,6 +1,8 @@
+#include "graphics.h"
+#include "ncurses.h"
+
 #include <cstddef>
 #include <cstdlib>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <sys/ioctl.h>
@@ -8,93 +10,63 @@
 #include <unistd.h>
 #include <vector>
 
-#include "graphics.h"
+void clear_screen() { clear(); }
 
-void clear_screen() { std::cout << "\033[2J\033[H"; }
+void apply_grad(const char &ch, int row, int col, int maxDimension) {
+  if (ch == ' ' || ch == '\n') {
+    addch(ch);
+    return;
+  }
 
-void get_terminal_size(int &rows, int &cols) {
-  struct winsize w;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-  rows = w.ws_row;
-  cols = w.ws_col;
-}
-
-std::string apply_grad(const char &ch, int row, int col, int maxDimension) {
-  if (ch == ' ' || ch == '\n')
-    return std::string(1, ch);
-
-  const std::vector<std::string> colors = {
-      "\033[34m",     // blue
-      "\033[36m",     // cyan
-      "\033[32m",     // neon green
-      "\033[38;5;49m" // bright green
-  };
+  const std::vector<int> colors = {COLOR_BLUE, COLOR_CYAN, COLOR_GREEN,
+                                   COLOR_YELLOW};
   int gradientIndex =
       ((row + col) * colors.size()) / maxDimension % colors.size();
-  return colors[gradientIndex] + ch + "\033[0m";
+
+  attron(COLOR_PAIR(gradientIndex + 1));
+  addch(ch);
+  attroff(COLOR_PAIR(gradientIndex + 1));
 }
 
 void print_ascii_grad(const std::string &asciiArt, int rows, int cols) {
-  // const int ascii_rows = 8;
-  const int ascii_cols = 25;
-
-  std::string line;
   std::istringstream stream(asciiArt);
-  int art_row = 0;
+  std::string line;
+  int art_row = 4;
 
   while (std::getline(stream, line)) {
-    int padding = (cols - line.size()) / 2;
-    if (padding > 0) {
-      std::cout << std::string(padding, ' ');
+    if (art_row >= rows) {
+      break;
     }
+
+    int padding = (cols - line.size()) / 2;
+    move(art_row, padding > 0 ? padding : 0);
 
     int art_col = 0;
+    int maxDimension = line.size();
+
     for (const char &ch : line) {
-      std::cout << apply_grad(ch, art_row, art_col, ascii_cols);
+      apply_grad(ch, art_row, art_col, maxDimension);
       art_col++;
     }
-    std::cout << std::endl;
-
     art_row++;
   }
 }
 
 void print_centered(const std::string &text, int width) {
-  std::string stripped_text;
-  bool in_escape = false;
-  for (char c : text) {
-    if (c == '\033') {
-      in_escape = true;
-    } else if (in_escape && c == 'm') {
-      in_escape = false;
-    } else if (!in_escape) {
-      stripped_text += c;
-    }
-  }
-
-  int visible_length = stripped_text.size();
-  int padding = (width - visible_length) / 2;
-
+  int padding = (width - text.size()) / 2;
   if (padding > 0) {
-    std::cout << std::string(padding, ' ');
+    printw("%*s", padding, ""); // Add left padding
   }
-
-  std::cout << text << std::endl;
+  printw("%s\n", text.c_str());
 }
 
-int display_help_screen(int rows, int cols) {
-  const std::string border_color = "\033[36m";
-  const std::string reset_color = "\033[0m";
-
-  int printed_rows = 0;
-
+int display_help_screen(int start_row, int cols) {
+  int printed_rows = start_row;
   std::string top_border(cols, '=');
-  std::cout << border_color << top_border << reset_color << std::endl;
-  printed_rows++;
 
-  print_centered(border_color + "Help Screen" + reset_color, cols);
-  std::cout << std::endl;
-  printed_rows += 2;
+  mvprintw(printed_rows++, 0, top_border.c_str());
+  print_centered("Help Screen", cols);
+  printed_rows++;
 
   std::vector<std::pair<std::string, std::string>> commands = {
       {"create <session_name>",
@@ -107,8 +79,7 @@ int display_help_screen(int rows, int cols) {
 
   int max_cmd_length = 0;
   for (const auto &command : commands) {
-    max_cmd_length =
-        std::max(max_cmd_length, static_cast<int>(command.first.size()));
+    max_cmd_length = std::max(max_cmd_length, (int)command.first.size());
   }
 
   int description_width = cols - max_cmd_length - 6;
@@ -117,43 +88,11 @@ int display_help_screen(int rows, int cols) {
     const std::string &cmd = command.first;
     const std::string &desc = command.second;
 
-    std::istringstream desc_stream(desc);
-    std::string word;
-    std::string line;
-    std::vector<std::string> wrapped_lines;
-    while (desc_stream >> word) {
-      if (line.size() + word.size() + 1 >
-          static_cast<size_t>(description_width)) {
-        wrapped_lines.push_back(line);
-        line.clear();
-      }
-      if (!line.empty()) {
-        line += " ";
-      }
-      line += word;
-    }
-    if (!line.empty()) {
-      wrapped_lines.push_back(line);
-    }
-
-    std::cout << border_color << "| " << reset_color << cmd
-              << std::string(max_cmd_length - cmd.size(), ' ') << " "
-              << wrapped_lines[0]
-              << std::string(description_width - wrapped_lines[0].size(), ' ')
-              << border_color << " |" << reset_color << std::endl;
-    printed_rows++;
-
-    for (size_t i = 1; i < wrapped_lines.size(); ++i) {
-      std::cout << border_color << "| " << reset_color
-                << std::string(max_cmd_length + 1, ' ') << wrapped_lines[i]
-                << std::string(description_width - wrapped_lines[i].size(), ' ')
-                << border_color << " |" << reset_color << std::endl;
-      printed_rows++;
-    }
+    mvprintw(printed_rows++, 0, "%-*s : %s", max_cmd_length, cmd.c_str(),
+             desc.c_str());
   }
 
-  std::cout << border_color << top_border << reset_color << std::endl;
-  printed_rows++;
+  mvprintw(printed_rows++, 0, top_border.c_str());
 
   return printed_rows;
 }
@@ -168,18 +107,67 @@ void print_header() {
                                   "           | |     \n"
                                   "           |_|     \n";
 
-  const std::string header = "\033[1;37mWELCOME TO\033[0m";
-  const std::string footer = "\033[1;37mTerminal Chat Platform\033[0m";
+  const std::string header = "WELCOME TO";
+  const std::string footer = "Terminal Chat Platform";
 
   int rows, cols;
-  get_terminal_size(rows, cols);
+  getmaxyx(stdscr, rows, cols); // Get terminal size
 
-  std::cout << std::endl << std::endl;
-  print_centered(header, cols);
-  std::cout << std::endl;
+  clear();
 
+  // Print the header text in bold and centered
+  attron(A_BOLD | COLOR_PAIR(2)); // Bold and color pair 1 (blue, black)
+  mvprintw(2, (cols - header.size()) / 2, "%s", header.c_str());
+  attroff(A_BOLD | COLOR_PAIR(2));
+
+  int ascii_start_row = 4; // Start row for ASCII art
   print_ascii_grad(title_ascii, rows, cols);
-  std::cout << std::endl;
 
-  print_centered(footer, cols);
+  // Print the footer text in bold and centered below the ASCII art
+  attron(A_BOLD | COLOR_PAIR(2)); // Bold and color pair 2 (cyan, black)
+  mvprintw(ascii_start_row + 10, (cols - footer.size()) / 2, "%s",
+           footer.c_str());
+  attroff(A_BOLD | COLOR_PAIR(2));
+}
+
+void dynamic_multi_line_input(WINDOW *input_win, std::string &input,
+                              int max_rows) {
+  int rows, cols;
+  getmaxyx(input_win, rows, cols);
+
+  input.clear();
+  wclear(input_win);
+  mvwprintw(input_win, 0, 2, "> ");
+  wrefresh(input_win);
+
+  int pos = 0;
+  while (true) {
+    int ch = wgetch(input_win);
+    if (ch == '\n') {
+      break; // Enter key pressed
+    } else if (ch == KEY_BACKSPACE || ch == 127) {
+      if (pos > 0) {
+        input.erase(--pos, 1);
+      }
+    } else if (isprint(ch)) {
+      input.insert(pos++, 1, ch);
+    }
+
+    // Update the input display
+    wclear(input_win);
+    mvwprintw(input_win, 0, 2, "> ");
+
+    std::istringstream iss(input);
+    std::string line;
+    int line_num = 1;
+    while (std::getline(iss, line)) {
+      if (line_num >= max_rows) {
+        break; // Prevent exceeding input area
+      }
+      mvwprintw(input_win, line_num++, 2, "%s", line.c_str());
+    }
+
+    box(input_win, 0, 0);
+    wrefresh(input_win);
+  }
 }

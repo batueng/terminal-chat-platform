@@ -4,36 +4,88 @@
 
 #include "Client.h"
 #include "graphics.h"
+#include "ncurses.h"
 #include "protocol.h"
 
+void handle_resize(int sig) {
+  endwin();  // End current ncurses session
+  refresh(); // Refresh screen
+  clear();   // Clear screen
+}
+
 Client::Client(std::string &_server_ip, int _server_port)
-    : req_handler(_server_ip, _server_port) {}
+    : req_handler(_server_ip, _server_port) {
+  initscr();            // Initialize ncurses
+  cbreak();             // Disable line buffering
+  noecho();             // Disable echoing typed characters
+  keypad(stdscr, TRUE); // Enable special keys
 
-Client::~Client() {}
+  if (has_colors()) {
+    use_default_colors();
+    start_color();
 
-void Client::print_login_screen() {
-  get_terminal_size(term_rows, term_cols);
+    init_pair(1, COLOR_BLUE, -1);
+    init_pair(2, COLOR_CYAN, -1);
+    init_pair(3, COLOR_GREEN, -1);
+    init_pair(4, COLOR_YELLOW, -1);
 
-  print_header();
+    clear();
+    refresh();
 
-  for (int i = 0; i < term_rows - 16; ++i) {
-    std::cout << std::endl;
+  } else {
+    endwin();
+    throw std::runtime_error("Your terminal does not support colors.");
   }
 
-  std::cout << "Enter your username: ";
-  std::getline(std::cin, username);
+  signal(SIGWINCH, handle_resize); // Handle terminal resize
+}
 
-  // TODO: add error checking on username
+Client::~Client() { endwin(); }
+
+void Client::print_login_screen() {
+  getmaxyx(stdscr, term_rows, term_cols); // Get terminal dimensions
+
+  // Print the header at the top
+  print_header();
+
+  // Prompt for username at the bottom, left-aligned
+  attron(COLOR_PAIR(3)); // Use green for the input prompt
+  std::string uname_prompt = "Enter your username: ";
+  mvprintw(term_rows - 1, 0, uname_prompt.c_str());
+  attroff(COLOR_PAIR(3));
+
+  refresh();
+
+  // Enable echo for username input and get the input
+  echo();
+  char username_buf[MAX_USERNAME];
+  mvgetstr(term_rows - 1, uname_prompt.size(),
+           username_buf); // Place input directly below prompt
+  noecho();
+
+  username =
+      std::string(username_buf); // Store the input in the username variable
+
+  // Send the username to the server
   req_handler.send_username(username);
+
+  refresh();
 }
 
 void Client::print_home_screen() {
-  std::cout << std::endl << std::endl;
-  std::cout << "Welcome, " << username << "!\n";
+  clear_screen();
+
+  getmaxyx(stdscr, term_rows, term_cols);
 
   print_header();
-  std::cout << std::endl << std::endl;
-  display_help_screen(term_rows, term_cols);
+  mvprintw(9, 0, "Debug: Header printed");
+  refresh();
+
+  int help_start_row = 10;
+  display_help_screen(help_start_row, term_cols);
+
+  mvprintw(9, 0, "Debug: Header printed");
+  refresh();
 }
 
 void Client::msg_update_listener() {
@@ -57,29 +109,25 @@ void Client::queue_chat(Message msg) {
 }
 
 void Client::print_session_screen() {
-  // Get the current terminal size
-  get_terminal_size(term_rows, term_cols);
-
-  // Clear the screen
   clear_screen();
 
-  // Print the session name at the top (centered or just left-aligned)
-  // Here, I'm using a centered print:
-  print_centered("\033[1;36m" + curr_sess + "\033[0m", term_cols);
+  // Get the current terminal size
+  getmaxyx(stdscr, term_rows, term_cols);
 
-  // Leave the rest of the screen mostly empty
-  // You can tweak the `term_rows - 4` part to adjust spacing
-  for (int i = 0; i < term_rows - 4; ++i) {
-    std::cout << std::endl;
-  }
+  WINDOW *msg_win = newwin(term_rows - 3, term_cols, 0, 0);   // Message area
+  WINDOW *input_win = newwin(3, term_cols, term_rows - 3, 0); // Input area
+  scrollok(msg_win, TRUE);
+  wrefresh(msg_win);
+
   std::string client_message;
+
   while (true) {
-    // Print the prompt at the bottom
-    std::cout << "> ";
-    std::flush(std::cout);
-    std::getline(std::cin, client_message);
+    dynamic_multi_line_input(input_win, client_message,
+                             3); // Allow dynamic input
 
     if (client_message == ":leave") {
+      delwin(msg_win);
+      delwin(input_win);
       boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
       curr_sess.clear();
       sess_cv.notify_all();
@@ -90,6 +138,10 @@ void Client::print_session_screen() {
     Message msg = {message_type::CHAT, username, client_message};
     req_handler.send_message(username, curr_sess, msg);
     queue_chat(msg);
+
+    // Print the new message in the message window
+    wprintw(msg_win, "%s: %s\n", username.c_str(), client_message.c_str());
+    wrefresh(msg_win);
   }
 }
 
@@ -97,6 +149,7 @@ void Client::message_listener() {
   while (true) {
     std::string res_hdr_str =
         req_handler.client_sock.recv_len(sizeof(tcp_hdr_t));
+
     tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res_hdr_str.data());
 
     std::string data = req_handler.client_sock.recv_len(res_hdr->data_len);
@@ -104,41 +157,34 @@ void Client::message_listener() {
     if (res_hdr->method == tcp_method::MESSAGE) {
       const std::vector<char> recv_msg =
           std::vector<char>(data.begin(), data.end());
+
       Message msg;
       msg = Message::deserialize_message(recv_msg);
+
       queue_chat(msg);
+
     } else {
-      std::cout << "hello" << std::endl;
       req_handler.queue_res(*res_hdr, data);
     }
   }
 }
 
 void Client::print_messages() {
-  std::cout << "\0337";
-  std::cout << "\033[H";
+  getmaxyx(stdscr, term_rows, term_cols);
 
-  int available_lines = term_rows - 2;
+  WINDOW *msg_win = newwin(term_rows - 3, term_cols, 0, 0); // Message area
+  box(msg_win, 0, 0);
+  scrollok(msg_win, TRUE);
 
-  int messages_size = messages.size();
-  int start_index = 0;
-  if (messages_size > available_lines) {
-    start_index = messages_size - available_lines;
-  }
-
-  for (int i = start_index; i < messages_size; ++i) {
+  int start_index =
+      messages.size() > term_rows - 4 ? messages.size() - (term_rows - 4) : 0;
+  for (int i = start_index; i < messages.size(); ++i) {
     const Message &msg = messages[i];
-    std::cout << "\033[K";
-    std::cout << msg.username << ": " << msg.text << std::endl;
+    wprintw(msg_win, "%s: %s\n", msg.username.c_str(), msg.text.c_str());
   }
 
-  int printed_lines = messages_size - start_index;
-  for (int i = printed_lines; i < available_lines; ++i) {
-    std::cout << "\033[K" << std::endl;
-  }
-
-  std::cout << "\0338";
-  std::cout.flush();
+  wrefresh(msg_win);
+  delwin(msg_win);
 }
 
 void Client::run() {
@@ -148,20 +194,26 @@ void Client::run() {
   print_login_screen();
   print_home_screen();
 
+  int rows, cols;
+  getmaxyx(stdscr, rows, cols);
+
+  WINDOW *main_win = newwin(rows - 3, cols, 0, 0);  // Main display area
+  WINDOW *input_win = newwin(3, cols, rows - 3, 0); // Input area
+  scrollok(main_win, TRUE);
+  wrefresh(main_win);
+
   std::string line, command;
   while (true) {
-    get_terminal_size(term_rows, term_cols);
+    getmaxyx(stdscr, term_rows, term_cols);
 
-    for (int i = 0; i < term_rows - 28; ++i) {
-      std::cout << std::endl;
-    }
-    std::cout << "> ";
-    std::getline(std::cin, line);
+    dynamic_multi_line_input(input_win, line, 3); // Capture input
+
     boost::trim(line);
 
     std::istringstream stream(line);
 
     stream >> command;
+
     std::string pattern =
         "^\\s*" + command + "\\s+" + "[\\x20-\\x7E]{1," +
         std::to_string(command == "where" ? MAX_USERNAME - 1
@@ -206,16 +258,23 @@ void Client::run() {
       // set session_name/username
 
     } else if (line == "help") {
-
+      print_home_screen();
     } else if (line == "exit") {
-      std::cout << "Exiting application. Goodbye!\n";
+      wprintw(main_win, "Exiting application. Goodbye!\n");
+      wrefresh(main_win);
       break;
     } else {
-      std::cout << "Unknown command" << std::endl;
+      wprintw(main_win,
+              "Unknown command. Please use help for proper TCP usage.");
+      wrefresh(main_win);
     }
+    line.clear();
   }
+
   updt_listener.join();
   msg_listener.join();
+  delwin(main_win);
+  delwin(input_win);
 }
 
 int main(int argc, char *argv[]) {
