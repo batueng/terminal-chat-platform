@@ -1,4 +1,0 @@
-/Users/jakezur/Documents/boredom-projects/terminal-chat-platform/CMakeFiles/server.dir
-/Users/jakezur/Documents/boredom-projects/terminal-chat-platform/CMakeFiles/tcp.dir
-/Users/jakezur/Documents/boredom-projects/terminal-chat-platform/CMakeFiles/edit_cache.dir
-/Users/jakezur/Documents/boredom-projects/terminal-chat-platform/CMakeFiles/rebuild_cache.dir
