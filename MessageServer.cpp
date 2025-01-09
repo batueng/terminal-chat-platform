@@ -46,6 +46,8 @@ void MessageServer::handle_client(int client_fd) {
       case tcp_method::JOIN: {
         std::shared_ptr<Session> sess = get_session(sess_name);
         sess->add_user(std::make_shared<UserSocket>(std::move(user_sock)));
+        std::cout << "join session request: " << sess_name << std::endl;
+        res_handler.send_join_res(user_sock, tcp_status::SUCCESS);
         // send join response
         break;
       }
@@ -53,13 +55,17 @@ void MessageServer::handle_client(int client_fd) {
         std::shared_ptr<Session> sess = insert_session(sess_name);
         sess->add_user(std::make_shared<UserSocket>(std::move(user_sock)));
         std::cout << "create session request: " << sess_name << std::endl;
+        boost::thread t(&Session::handle_session, sess.get());
         // send create response
         res_handler.send_create_res(user_sock, tcp_status::SUCCESS);
         break;
       }
       case tcp_method::MESSAGE: {
         std::shared_ptr<Session> sess = get_session(sess_name);
-        Message msg = {message_type::CHAT, username, data.data()};
+
+        Message msg = Message::deserialize_message(
+            std::vector<char>(data.begin(), data.end()));
+
         sess->queue_msg(msg);
       }
       case tcp_method::LEAVE:

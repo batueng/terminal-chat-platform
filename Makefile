@@ -214,6 +214,54 @@ MessageServer.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/MessageServer.cpp.s
 .PHONY : MessageServer.cpp.s
 
+RequestHandler.o: RequestHandler.cpp.o
+.PHONY : RequestHandler.o
+
+# target to build an object file
+RequestHandler.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tcp.dir/build.make CMakeFiles/tcp.dir/RequestHandler.cpp.o
+.PHONY : RequestHandler.cpp.o
+
+RequestHandler.i: RequestHandler.cpp.i
+.PHONY : RequestHandler.i
+
+# target to preprocess a source file
+RequestHandler.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tcp.dir/build.make CMakeFiles/tcp.dir/RequestHandler.cpp.i
+.PHONY : RequestHandler.cpp.i
+
+RequestHandler.s: RequestHandler.cpp.s
+.PHONY : RequestHandler.s
+
+# target to generate assembly for a file
+RequestHandler.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tcp.dir/build.make CMakeFiles/tcp.dir/RequestHandler.cpp.s
+.PHONY : RequestHandler.cpp.s
+
+ResponseHandler.o: ResponseHandler.cpp.o
+.PHONY : ResponseHandler.o
+
+# target to build an object file
+ResponseHandler.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/ResponseHandler.cpp.o
+.PHONY : ResponseHandler.cpp.o
+
+ResponseHandler.i: ResponseHandler.cpp.i
+.PHONY : ResponseHandler.i
+
+# target to preprocess a source file
+ResponseHandler.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/ResponseHandler.cpp.i
+.PHONY : ResponseHandler.cpp.i
+
+ResponseHandler.s: ResponseHandler.cpp.s
+.PHONY : ResponseHandler.s
+
+# target to generate assembly for a file
+ResponseHandler.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/ResponseHandler.cpp.s
+.PHONY : ResponseHandler.cpp.s
+
 ServerSocket.o: ServerSocket.cpp.o
 .PHONY : ServerSocket.o
 
@@ -310,6 +358,33 @@ graphics.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/tcp.dir/build.make CMakeFiles/tcp.dir/graphics.cpp.s
 .PHONY : graphics.cpp.s
 
+protocol.o: protocol.cpp.o
+.PHONY : protocol.o
+
+# target to build an object file
+protocol.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/protocol.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tcp.dir/build.make CMakeFiles/tcp.dir/protocol.cpp.o
+.PHONY : protocol.cpp.o
+
+protocol.i: protocol.cpp.i
+.PHONY : protocol.i
+
+# target to preprocess a source file
+protocol.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/protocol.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tcp.dir/build.make CMakeFiles/tcp.dir/protocol.cpp.i
+.PHONY : protocol.cpp.i
+
+protocol.s: protocol.cpp.s
+.PHONY : protocol.s
+
+# target to generate assembly for a file
+protocol.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/server.dir/build.make CMakeFiles/server.dir/protocol.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tcp.dir/build.make CMakeFiles/tcp.dir/protocol.cpp.s
+.PHONY : protocol.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -329,6 +404,12 @@ help:
 	@echo "... MessageServer.o"
 	@echo "... MessageServer.i"
 	@echo "... MessageServer.s"
+	@echo "... RequestHandler.o"
+	@echo "... RequestHandler.i"
+	@echo "... RequestHandler.s"
+	@echo "... ResponseHandler.o"
+	@echo "... ResponseHandler.i"
+	@echo "... ResponseHandler.s"
 	@echo "... ServerSocket.o"
 	@echo "... ServerSocket.i"
 	@echo "... ServerSocket.s"
@@ -341,6 +422,9 @@ help:
 	@echo "... graphics.o"
 	@echo "... graphics.i"
 	@echo "... graphics.s"
+	@echo "... protocol.o"
+	@echo "... protocol.i"
+	@echo "... protocol.s"
 .PHONY : help
 
 

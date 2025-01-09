@@ -61,10 +61,10 @@ struct tcp_hdr_t {
 
 // ============================= MESSAGE PROTOCOLS =============================
 
-enum class message_type {
-  CHAT = 0x00,
-  USER_JOIN = 0x01,
-  USER_LEFT = 0x02,
+enum class message_type : uint8_t {
+  CHAT = 0,
+  USER_JOIN = 1,
+  USER_LEFT = 2,
 };
 
 struct Message {

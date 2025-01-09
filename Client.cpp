@@ -107,8 +107,8 @@ void Client::message_listener() {
       Message msg;
       msg = Message::deserialize_message(recv_msg);
       queue_chat(msg);
+      // signal here
     } else {
-      std::cout << "hello" << std::endl;
       req_handler.queue_res(*res_hdr, data);
     }
   }

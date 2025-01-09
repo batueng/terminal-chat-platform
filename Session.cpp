@@ -7,18 +7,21 @@ Session::Session(std::string &_name) : name(_name), id(id_count++) {}
 
 void Session::handle_session() {
   while (true) {
-    boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
-    while (messages.empty()) {
-      msg_cv.wait(msg_lock);
+    {
+      boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
+      while (messages.empty()) {
+        msg_cv.wait(msg_lock);
+      }
     }
 
     broadcast_msg();
+    messages.pop();
   }
 }
 
 void Session::broadcast_msg() {
   boost::unique_lock<boost::shared_mutex> brdcst_lock(usr_mtx);
-  std::cout << "Broadcasting messages!" << std::endl;
+
   Message msg;
   {
     boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
@@ -38,6 +41,7 @@ void Session::broadcast_msg() {
     user->send_len(&message_hdr, sizeof(message_hdr));
     // TODO: Think I still need to actually send message also
     user->send_len(serialized_msg.data(), sizeof(serialized_msg));
+    // got to here, errors on client side
   }
 }
 
