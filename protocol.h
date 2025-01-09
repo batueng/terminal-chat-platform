@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "boost/thread/mutex.hpp"
+
 // ================================= CONSTANTS =================================
 //
 const uint16_t MAX_SESSION_NAME = 20;
@@ -76,4 +78,7 @@ struct Message {
 
   static Message deserialize_message(const std::vector<char> &data);
 };
+
+extern boost::mutex cout_mtx;
+
 #endif

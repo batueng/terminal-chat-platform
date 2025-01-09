@@ -1,6 +1,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 #include <sstream>
+#include <termkey.h>
+#include <unistd.h>
 
 #include "Client.h"
 #include "graphics.h"
@@ -23,7 +25,7 @@ void Client::print_login_screen() {
   std::cout << "Enter your username: ";
   std::getline(std::cin, username);
 
-  // TODO: add error checking on username
+  // TODO: add validation checking on username
   req_handler.send_username(username);
 }
 
@@ -72,6 +74,7 @@ void Client::print_session_screen() {
   for (int i = 0; i < term_rows - 4; ++i) {
     std::cout << std::endl;
   }
+
   std::string client_message;
   while (true) {
     // Print the prompt at the bottom
@@ -106,8 +109,13 @@ void Client::message_listener() {
           std::vector<char>(data.begin(), data.end());
       Message msg;
       msg = Message::deserialize_message(recv_msg);
+
+      {
+        boost::unique_lock<boost::mutex> cout_lock(cout_mtx);
+        std::cout << "deserilaized " << msg.text << std::endl;
+      }
+
       queue_chat(msg);
-      // signal here
     } else {
       req_handler.queue_res(*res_hdr, data);
     }

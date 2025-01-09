@@ -15,7 +15,6 @@ void Session::handle_session() {
     }
 
     broadcast_msg();
-    messages.pop();
   }
 }
 
@@ -32,16 +31,17 @@ void Session::broadcast_msg() {
   const std::vector<char> serialized_msg = msg.serialize_message();
 
   for (auto &user : users) {
+    if (msg.username == user->name)
+      continue;
+
     tcp_hdr_t message_hdr;
+
     message_hdr.method = tcp_method::MESSAGE;
-    message_hdr.data_len = sizeof(serialized_msg);
+    message_hdr.data_len = serialized_msg.size();
     std::memcpy(message_hdr.session_name, name.c_str(), MAX_SESSION_NAME);
-    std::memcpy(message_hdr.username, user->name.c_str(), MAX_USERNAME);
 
     user->send_len(&message_hdr, sizeof(message_hdr));
-    // TODO: Think I still need to actually send message also
-    user->send_len(serialized_msg.data(), sizeof(serialized_msg));
-    // got to here, errors on client side
+    user->send_len(serialized_msg.data(), serialized_msg.size());
   }
 }
 
