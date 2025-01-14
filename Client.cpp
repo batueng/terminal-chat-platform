@@ -1,8 +1,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 #include <sstream>
-#include <termkey.h>
+// #include <termkey.h>
 #include <unistd.h>
+#include <ncurses.h>
 
 #include "Client.h"
 #include "graphics.h"
@@ -59,34 +60,62 @@ void Client::queue_chat(Message msg) {
 }
 
 void Client::print_session_screen() {
-  // Get the current terminal size
-  get_terminal_size(term_rows, term_cols);
+  initscr();
+  cbreak();
+  noecho();
+  keypad(stdscr, TRUE);
+  curs_set(1);
 
-  // Clear the screen
-  clear_screen();
+  // Seperate the messages and the input window so
+  // new messages coming in do not interrupt the input space
+  int height;
+  int width;
+  getmaxyx(stdscr, height, width);
 
-  // Print the session name at the top (centered or just left-aligned)
-  // Here, I'm using a centered print:
-  print_centered("\033[1;36m" + curr_sess + "\033[0m", term_cols);
+  messages_win = newwin(height - 3, width, 0, 0);
+  input_win = newwin(3, width, height - 3, 0);
 
-  // Leave the rest of the screen mostly empty
-  // You can tweak the `term_rows - 4` part to adjust spacing
-  for (int i = 0; i < term_rows - 4; ++i) {
-    std::cout << std::endl;
-  }
+  scrollok(messages_win, TRUE);
+  
+  wrefresh(messages_win);
+  wrefresh(input_win);
+
+  werase(messages_win);
+  box(messages_win, 0, 0);
+  wrefresh(messages_win);
+
+  std::string session_title = "\033[1;36m" + curr_sess + "\033[0m";
+  int msg_width = getmaxx(messages_win);
+  mvwprintw(messages_win, 1, (msg_width - session_title.length()) / 2, "%s", session_title.c_str());
+  wrefresh(messages_win);
 
   std::string client_message;
   while (true) {
-    // Print the prompt at the bottom
-    std::cout << "> ";
-    std::flush(std::cout);
-    std::getline(std::cin, client_message);
+    werase(input_win);
+    box(input_win, 0, 0);
+    mvwprintw(input_win, 1, 2, "> ");
+    wrefresh(input_win);
+
+    echo();
+    
+    wmove(input_win, 1, 4);
+
+    char input_buffer[1024];
+    wgetnstr(input_win, input_buffer, sizeof(input_buffer) - 1);
+    client_message = std::string(input_buffer);
+    
+    noecho();
 
     if (client_message == ":leave") {
       boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
       curr_sess.clear();
       sess_cv.notify_all();
       print_home_screen();
+
+      // ncurses cleanup
+      delwin(messages_win);
+      delwin(input_win);
+      endwin();
       return;
     }
 
@@ -110,11 +139,6 @@ void Client::message_listener() {
       Message msg;
       msg = Message::deserialize_message(recv_msg);
 
-      {
-        boost::unique_lock<boost::mutex> cout_lock(cout_mtx);
-        std::cout << "deserilaized " << msg.text << std::endl;
-      }
-
       queue_chat(msg);
     } else {
       req_handler.queue_res(*res_hdr, data);
@@ -123,30 +147,26 @@ void Client::message_listener() {
 }
 
 void Client::print_messages() {
-  std::cout << "\0337";
-  std::cout << "\033[H";
+  boost::unique_lock<boost::mutex> lock(cout_mtx);
 
-  int available_lines = term_rows - 2;
+  werase(messages_win);
+  box(messages_win, 0, 0);
 
-  int messages_size = messages.size();
-  int start_index = 0;
-  if (messages_size > available_lines) {
-    start_index = messages_size - available_lines;
+  int msg_width = getmaxx(messages_win);
+  mvwprintw(messages_win, 1, (msg_width - curr_sess.length()) / 2, "%s", curr_sess.c_str());
+
+  int y = 3;
+  for (const auto& msg : messages) {
+    if (y >= getmaxy(messages_win) - 1) { // Prevent writing outside the window
+      break;
+    }
+    mvwprintw(messages_win, y, 2, "%s: ", msg.username.c_str());
+    mvwprintw(messages_win, y, 2 + msg.username.length() + 2, "%s", msg.text.c_str());
+    y++;
   }
 
-  for (int i = start_index; i < messages_size; ++i) {
-    const Message &msg = messages[i];
-    std::cout << "\033[K";
-    std::cout << msg.username << ": " << msg.text << std::endl;
-  }
-
-  int printed_lines = messages_size - start_index;
-  for (int i = printed_lines; i < available_lines; ++i) {
-    std::cout << "\033[K" << std::endl;
-  }
-
-  std::cout << "\0338";
-  std::cout.flush();
+  // Refresh the messages window to show updates
+  wrefresh(messages_win);
 }
 
 void Client::run() {

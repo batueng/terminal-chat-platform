@@ -17,8 +17,14 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")  # Enable debug symbols and disable optimiza
 # Find Boost
 find_package(Boost REQUIRED COMPONENTS thread system)
 
+# Find ncurses
+find_package(Curses REQUIRED)
+
 # Include directories
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(
+  ${Boost_INCLUDE_DIRS}
+  ${CURSES_INCLUDE_DIR}
+)
 
 # Add executable for the server
 add_executable(server
@@ -46,4 +52,4 @@ add_executable(tcp
 )
 
 # Link Boost libraries to the client executable
-target_link_libraries(tcp ${Boost_LIBRARIES})
+target_link_libraries(tcp ${Boost_LIBRARIES} ${CURSES_LIBRARIES})

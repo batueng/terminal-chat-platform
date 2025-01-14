@@ -1,6 +1,5 @@
 #include "protocol.h"
 
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -50,11 +49,6 @@ Message Message::deserialize_message(const std::vector<char> &data) {
   offset += sizeof(text_length);
 
   msg.text = std::string(data.data() + offset, text_length);
-
-  {
-    boost::unique_lock<boost::mutex> cout_lock(cout_mtx);
-    std::cout << "just deserialized " << msg.text << std::endl;
-  }
 
   return msg;
 }

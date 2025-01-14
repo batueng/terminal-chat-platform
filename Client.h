@@ -8,6 +8,7 @@
 
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
+#include <ncurses.h>
 #include <cstddef>
 #include <cstdlib>
 #include <deque>
@@ -36,6 +37,11 @@ private:
   //
   // // Signal handler for window size
   // static void handle_winch(int sig);
+
+  // ncurses windows to manage messages and input space
+  WINDOW* messages_win;
+
+  WINDOW* input_win;
 
   std::string username;
 
