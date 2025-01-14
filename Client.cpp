@@ -110,11 +110,6 @@ void Client::message_listener() {
       Message msg;
       msg = Message::deserialize_message(recv_msg);
 
-      {
-        boost::unique_lock<boost::mutex> cout_lock(cout_mtx);
-        std::cout << "deserilaized " << msg.text << std::endl;
-      }
-
       queue_chat(msg);
     } else {
       req_handler.queue_res(*res_hdr, data);

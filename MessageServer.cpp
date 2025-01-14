@@ -67,6 +67,7 @@ void MessageServer::handle_client(int client_fd) {
             std::vector<char>(data.begin(), data.end()));
 
         sess->queue_msg(msg);
+        break;
       }
       case tcp_method::LEAVE:
         break;
@@ -74,6 +75,8 @@ void MessageServer::handle_client(int client_fd) {
       default:
         break;
       }
+    } catch (TCPError &e) {
+      res_handler.send_err_res(user_sock, e);
     } catch (std::exception &e) {
       std::cout << e.what() << std::endl;
     }

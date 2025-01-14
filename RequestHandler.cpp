@@ -50,8 +50,6 @@ void RequestHandler::send_create(std::string &username,
     res_cv.wait(res_lock);
   }
 
-  std::cout << "got to create" << std::endl;
-
   auto [res_hdr, err_msg] = res_q.front();
   res_q.pop();
 
@@ -127,6 +125,5 @@ void RequestHandler::send_message(std::string &username,
   message_hdr.session_name[session_name.size()] = '\0';
 
   client_sock.send_len(&message_hdr, sizeof(tcp_hdr_t));
-
   client_sock.send_len(serialized_msg.data(), serialized_msg.size());
 }

@@ -28,13 +28,14 @@ const uint16_t MAX_USERNAME = 12;
  *    - CREATE -> sockaddr to connect to newly created session
  *    - CHAT -> std::string message
  */
-enum class tcp_method {
-  U_NAME = 0x000,
-  WHERE = 0x0001,
-  JOIN = 0x0002,
-  CREATE = 0x0003,
-  MESSAGE = 0x0004,
-  LEAVE = 0x005,
+enum class tcp_method : uint16_t {
+  U_NAME = 0x00,
+  WHERE = 0x01,
+  JOIN = 0x02,
+  CREATE = 0x03,
+  MESSAGE = 0x04,
+  LEAVE = 0x05,
+  ERROR = 0x06
 };
 
 enum class tcp_status {
