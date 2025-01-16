@@ -2,8 +2,8 @@
 #include <boost/regex.hpp>
 #include <sstream>
 // #include <termkey.h>
-#include <unistd.h>
 #include <ncurses.h>
+#include <unistd.h>
 
 #include "Client.h"
 #include "graphics.h"
@@ -61,10 +61,14 @@ void Client::queue_chat(Message msg) {
 
 void Client::print_session_screen() {
   initscr();
+  use_default_colors();
+  start_color();
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
   curs_set(1);
+
+  init_pair(1, COLOR_CYAN, -1);
 
   // Seperate the messages and the input window so
   // new messages coming in do not interrupt the input space
@@ -76,7 +80,7 @@ void Client::print_session_screen() {
   input_win = newwin(3, width, height - 3, 0);
 
   scrollok(messages_win, TRUE);
-  
+
   wrefresh(messages_win);
   wrefresh(input_win);
 
@@ -84,9 +88,11 @@ void Client::print_session_screen() {
   box(messages_win, 0, 0);
   wrefresh(messages_win);
 
-  std::string session_title = "\033[1;36m" + curr_sess + "\033[0m";
   int msg_width = getmaxx(messages_win);
-  mvwprintw(messages_win, 1, (msg_width - session_title.length()) / 2, "%s", session_title.c_str());
+  wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
+  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s",
+            curr_sess.c_str());
+  wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
   wrefresh(messages_win);
 
   std::string client_message;
@@ -97,13 +103,13 @@ void Client::print_session_screen() {
     wrefresh(input_win);
 
     echo();
-    
+
     wmove(input_win, 1, 4);
 
     char input_buffer[1024];
     wgetnstr(input_win, input_buffer, sizeof(input_buffer) - 1);
     client_message = std::string(input_buffer);
-    
+
     noecho();
 
     if (client_message == ":leave") {
@@ -153,15 +159,17 @@ void Client::print_messages() {
   box(messages_win, 0, 0);
 
   int msg_width = getmaxx(messages_win);
-  mvwprintw(messages_win, 1, (msg_width - curr_sess.length()) / 2, "%s", curr_sess.c_str());
+  mvwprintw(messages_win, 1, (msg_width - curr_sess.length()) / 2, "%s",
+            curr_sess.c_str());
 
   int y = 3;
-  for (const auto& msg : messages) {
+  for (const auto &msg : messages) {
     if (y >= getmaxy(messages_win) - 1) { // Prevent writing outside the window
       break;
     }
     mvwprintw(messages_win, y, 2, "%s: ", msg.username.c_str());
-    mvwprintw(messages_win, y, 2 + msg.username.length() + 2, "%s", msg.text.c_str());
+    mvwprintw(messages_win, y, 2 + msg.username.length() + 2, "%s",
+              msg.text.c_str());
     y++;
   }
 

@@ -37,7 +37,7 @@ public:
 class DuplicateUser : public DuplicateObjectError {
 public:
   explicit DuplicateUser(std::string user_name)
-      : DuplicateObjectError(user_name, tcp_status::DUP_SESS) {}
+      : DuplicateObjectError(user_name, tcp_status::DUP_USER) {}
 };
 
 // ============================= Not Found Classes =============================

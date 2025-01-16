@@ -3,6 +3,7 @@
 #include "UserSocket.h"
 #include "errors.h"
 #include "protocol.h"
+
 #include <boost/thread.hpp>
 #include <exception>
 #include <iostream>
