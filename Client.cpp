@@ -27,7 +27,13 @@ void Client::print_login_screen() {
   std::getline(std::cin, username);
 
   // TODO: add validation checking on username
-  req_handler.send_username(username);
+  std::string err_msg;
+
+  while (req_handler.send_username(username, err_msg) != tcp_status::SUCCESS) {
+    std::cout << err_msg << std::endl;
+    std::cout << "Enter your username: ";
+    std::getline(std::cin, username);
+  }
 }
 
 void Client::print_home_screen() {
