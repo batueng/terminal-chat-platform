@@ -18,7 +18,7 @@ public:
 
   void queue_res(tcp_hdr_t res_hdr, std::string msg);
 
-  void send_username(std::string username);
+  tcp_status send_username(std::string username, std::string &err_msg);
 
   void send_create(std::string &username, std::string &session_name);
 

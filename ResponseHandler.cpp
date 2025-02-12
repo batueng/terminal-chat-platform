@@ -1,19 +1,16 @@
 #include "ResponseHandler.h"
 #include "UserSocket.h"
+#include "errors.h"
 #include "protocol.h"
 
 void ResponseHandler::send_username_res(UserSocket &user_sock,
-                                        tcp_status status, std::string data) {
-  tcp_hdr_t uname_hdr = {tcp_method::U_NAME, status, data.size()};
+                                        tcp_status status) {
+  tcp_hdr_t uname_hdr = {tcp_method::U_NAME, status, 0};
   std::string username = user_sock.get_name();
   std::memcpy(uname_hdr.username, username.c_str(), username.size());
   uname_hdr.username[username.size()] = '\0';
 
   user_sock.send_len(&uname_hdr, sizeof(tcp_hdr_t));
-
-  if (data.size()) {
-    user_sock.send_len(data.c_str(), data.size());
-  }
 }
 
 void ResponseHandler::send_where_res(UserSocket &user_sock, tcp_status status,
@@ -24,10 +21,7 @@ void ResponseHandler::send_where_res(UserSocket &user_sock, tcp_status status,
   where_hdr.username[username.size()] = '\0';
 
   user_sock.send_len(&where_hdr, sizeof(where_hdr));
-
-  if (session.size()) {
-    user_sock.send_len(session.c_str(), session.size());
-  }
+  user_sock.send_len(session.c_str(), session.size());
 }
 
 void ResponseHandler::send_join_res(UserSocket &user_sock, tcp_status status) {
@@ -56,4 +50,17 @@ void ResponseHandler::send_leave_res(UserSocket &user_sock, tcp_status status) {
   leave_hdr.username[username.size()] = '\0';
 
   user_sock.send_len(&leave_hdr, sizeof(leave_hdr));
+}
+
+void ResponseHandler::send_err_res(UserSocket &user_sock, TCPError &e) {
+  const char *err_msg = e.what();
+  size_t err_len = strlen(err_msg);
+
+  tcp_hdr_t err_hdr = {tcp_method::ERROR, e.get_status(), err_len};
+  std::string username = user_sock.get_name();
+  std::memcpy(err_hdr.username, username.c_str(), username.size());
+  err_hdr.username[username.size()] = '\0';
+
+  user_sock.send_len(&err_hdr, sizeof(err_hdr));
+  user_sock.send_len(err_msg, err_len);
 }

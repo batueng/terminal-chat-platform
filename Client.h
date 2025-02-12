@@ -8,18 +8,16 @@
 
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
-#include <ncurses.h>
 #include <cstddef>
 #include <cstdlib>
 #include <deque>
 #include <iostream>
+#include <ncurses.h>
 #include <signal.h>
 #include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-
-const size_t BUFFER_SIZE = 20;
 
 class Client {
 public:
@@ -39,9 +37,9 @@ private:
   // static void handle_winch(int sig);
 
   // ncurses windows to manage messages and input space
-  WINDOW* messages_win;
+  WINDOW *messages_win;
 
-  WINDOW* input_win;
+  WINDOW *input_win;
 
   std::string username;
 

@@ -6,7 +6,8 @@
 RequestHandler::RequestHandler(std::string &_ip, uint16_t _port)
     : ip(_ip), port(_port), client_sock(_ip, _port) {}
 
-void RequestHandler::send_username(std::string username) {
+tcp_status RequestHandler::send_username(std::string username,
+                                         std::string &err_msg) {
   // create req hdr
   tcp_hdr_t uname_hdr = {tcp_method::U_NAME, tcp_status::SUCCESS, 0};
   std::memcpy(uname_hdr.username, username.c_str(), username.size());
@@ -19,12 +20,13 @@ void RequestHandler::send_username(std::string username) {
     res_cv.wait(res_lock);
   }
 
-  auto [res_hdr, err_msg] = res_q.front();
+  auto res_pair = res_q.front();
+  tcp_hdr_t res_hdr = res_pair.first;
+  err_msg = res_pair.second;
+
   res_q.pop();
 
-  if (res_hdr.status != tcp_status::SUCCESS) {
-    std::cout << err_msg << std::endl;
-  };
+  return res_hdr.status;
 }
 
 void RequestHandler::queue_res(tcp_hdr_t res_hdr, std::string msg) {
@@ -49,8 +51,6 @@ void RequestHandler::send_create(std::string &username,
   while (res_q.empty()) {
     res_cv.wait(res_lock);
   }
-
-  std::cout << "got to create" << std::endl;
 
   auto [res_hdr, err_msg] = res_q.front();
   res_q.pop();
@@ -127,6 +127,5 @@ void RequestHandler::send_message(std::string &username,
   message_hdr.session_name[session_name.size()] = '\0';
 
   client_sock.send_len(&message_hdr, sizeof(tcp_hdr_t));
-
   client_sock.send_len(serialized_msg.data(), serialized_msg.size());
 }

@@ -2,8 +2,8 @@
 #include <boost/regex.hpp>
 #include <sstream>
 // #include <termkey.h>
-#include <unistd.h>
 #include <ncurses.h>
+#include <unistd.h>
 
 #include "Client.h"
 #include "graphics.h"
@@ -27,7 +27,13 @@ void Client::print_login_screen() {
   std::getline(std::cin, username);
 
   // TODO: add validation checking on username
-  req_handler.send_username(username);
+  std::string err_msg;
+
+  while (req_handler.send_username(username, err_msg) != tcp_status::SUCCESS) {
+    std::cout << err_msg << std::endl;
+    std::cout << "Enter your username: ";
+    std::getline(std::cin, username);
+  }
 }
 
 void Client::print_home_screen() {
@@ -61,6 +67,8 @@ void Client::queue_chat(Message msg) {
 
 void Client::print_session_screen() {
   initscr();
+  use_default_colors();
+  start_color();
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
@@ -84,7 +92,10 @@ void Client::print_session_screen() {
   // Print the session title centered on row 1.
   std::string session_title = curr_sess;
   int msg_width = getmaxx(messages_win);
-  mvwprintw(messages_win, 1, (msg_width - session_title.length()) / 2, "%s", session_title.c_str());
+  wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
+  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s",
+            curr_sess.c_str());
+  wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
   wrefresh(messages_win);
 
   std::string client_message;
