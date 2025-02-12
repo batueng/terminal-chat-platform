@@ -66,25 +66,23 @@ void Client::print_session_screen() {
   keypad(stdscr, TRUE);
   curs_set(1);
 
-  // Seperate the messages and the input window so
-  // new messages coming in do not interrupt the input space
-  int height;
-  int width;
+  int height, width;
   getmaxyx(stdscr, height, width);
 
+  // Create the windows without borders.
   messages_win = newwin(height - 3, width, 0, 0);
   input_win = newwin(3, width, height - 3, 0);
 
   scrollok(messages_win, TRUE);
-  
+
+  // Erase and refresh without drawing a box.
+  werase(messages_win);
   wrefresh(messages_win);
+  werase(input_win);
   wrefresh(input_win);
 
-  werase(messages_win);
-  box(messages_win, 0, 0);
-  wrefresh(messages_win);
-
-  std::string session_title = "\033[1;36m" + curr_sess + "\033[0m";
+  // Print the session title centered on row 1.
+  std::string session_title = curr_sess;
   int msg_width = getmaxx(messages_win);
   mvwprintw(messages_win, 1, (msg_width - session_title.length()) / 2, "%s", session_title.c_str());
   wrefresh(messages_win);
@@ -92,18 +90,14 @@ void Client::print_session_screen() {
   std::string client_message;
   while (true) {
     werase(input_win);
-    box(input_win, 0, 0);
     mvwprintw(input_win, 1, 2, "> ");
     wrefresh(input_win);
 
     echo();
-    
     wmove(input_win, 1, 4);
-
     char input_buffer[1024];
     wgetnstr(input_win, input_buffer, sizeof(input_buffer) - 1);
     client_message = std::string(input_buffer);
-    
     noecho();
 
     if (client_message == ":leave") {
@@ -112,7 +106,7 @@ void Client::print_session_screen() {
       sess_cv.notify_all();
       print_home_screen();
 
-      // ncurses cleanup
+      // Clean up the windows.
       delwin(messages_win);
       delwin(input_win);
       endwin();
@@ -150,23 +144,61 @@ void Client::print_messages() {
   boost::unique_lock<boost::mutex> lock(cout_mtx);
 
   werase(messages_win);
-  box(messages_win, 0, 0);
 
-  int msg_width = getmaxx(messages_win);
-  mvwprintw(messages_win, 1, (msg_width - curr_sess.length()) / 2, "%s", curr_sess.c_str());
+  int win_width = getmaxx(messages_win);
+  int win_height = getmaxy(messages_win);
+  int interiorWidth = win_width;
+
+  mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s", curr_sess.c_str());
 
   int y = 3;
-  for (const auto& msg : messages) {
-    if (y >= getmaxy(messages_win) - 1) { // Prevent writing outside the window
+
+  std::string prev_sender = "";
+  for (const auto &msg : messages) {
+    if (y >= win_height)
       break;
+
+    if (msg.username == username) {
+      std::string text = msg.text;
+      int available_self = interiorWidth - 1;
+
+      if ((int)text.size() > available_self)
+        text = text.substr(text.size() - available_self);
+
+      int textLen = text.size();
+      int x = (interiorWidth - 1) - textLen;
+
+      mvwprintw(messages_win, y, x, "%s", text.c_str());
+      y++;
+      prev_sender = username;
+
+    } else {
+      int available_rec = interiorWidth - 1;
+
+      if (msg.username != prev_sender) {
+        std::string header = msg.username + ": " + msg.text;
+
+        if ((int)header.size() > available_rec)
+          header = header.substr(0, available_rec);
+
+        mvwprintw(messages_win, y, 1, "%s", header.c_str());
+        y++;
+        prev_sender = msg.username;
+
+      } else {
+        std::string text = msg.text;
+        if ((int)text.size() > available_rec)
+          text = text.substr(0, available_rec);
+
+        mvwprintw(messages_win, y, 1, "%s", text.c_str());
+        y++;
+      }
     }
-    mvwprintw(messages_win, y, 2, "%s: ", msg.username.c_str());
-    mvwprintw(messages_win, y, 2 + msg.username.length() + 2, "%s", msg.text.c_str());
-    y++;
   }
 
-  // Refresh the messages window to show updates
   wrefresh(messages_win);
+  wmove(input_win, 1, 4);
+  wrefresh(input_win);
 }
 
 void Client::run() {
