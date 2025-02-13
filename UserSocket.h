@@ -1,6 +1,7 @@
 #ifndef user_socket_h
 #define user_socket_h
 
+#include "protocol.h"
 #include <arpa/inet.h>
 #include <string>
 
@@ -17,7 +18,11 @@ public:
 
   std::string get_name();
 
+  color get_color();
+
   void set_name(std::string);
+
+  void set_color(color _c);
 
   bool is_in_session() { return in_session; }
 
@@ -29,6 +34,8 @@ private:
   bool in_session = false;
 
   std::string name;
+
+  color c = color::DEFAULT;
 
   void cleanup();
 };

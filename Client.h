@@ -2,18 +2,15 @@
 #ifndef client_h
 #define client_h
 
-#include "ClientSocket.h"
 #include "RequestHandler.h"
-#include "Session.h"
 
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <cstddef>
 #include <cstdlib>
 #include <deque>
-#include <iostream>
 #include <ncurses.h>
-#include <signal.h>
 #include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -28,6 +25,8 @@ public:
   void run();
 
 private:
+  friend class RequestHandler;
+
   // should implement this to allow terminal resizing
   // // Flag to indicate window has been resized
   // static volatile sig_atomic_t resized;
@@ -42,6 +41,8 @@ private:
   WINDOW *input_win;
 
   std::string username;
+
+  color c;
 
   std::string curr_sess;
 

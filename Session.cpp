@@ -3,7 +3,16 @@
 
 #include <iostream>
 
-Session::Session(std::string &_name) : name(_name), id(id_count++) {}
+Session::Session(std::string &_name) : name(_name), id(id_count++) {
+  engine = std::mt19937(rd());
+  std::uniform_int_distribution<int> dist(static_cast<int>(color::RED),
+                                          static_cast<int>(color::END));
+
+  for (uint8_t i = static_cast<uint8_t>(color::RED);
+       i < static_cast<uint8_t>(color::END); ++i) {
+    available_colors.insert(static_cast<color>(i));
+  }
+}
 
 void Session::handle_session() {
   while (true) {
@@ -54,7 +63,25 @@ void Session::queue_msg(Message &msg) {
 
 void Session::add_user(std::shared_ptr<UserSocket> user) {
   boost::unique_lock<boost::shared_mutex> brdcst_lock(usr_mtx);
+  user.get()->set_color(pick_color());
   std::cout << "User added to session " << name << ": " << user->get_name()
             << std::endl;
   users.insert(user);
+}
+
+color Session::pick_color() {
+  if (available_colors.empty())
+    return static_cast<color>(dist(engine));
+
+  for (uint8_t i = static_cast<uint8_t>(color::RED);
+       i < static_cast<uint8_t>(color::END); ++i) {
+
+    color c = static_cast<color>(i);
+    if (available_colors.contains(c)) {
+      available_colors.erase(c);
+      return c;
+    }
+  }
+
+  return color::DEFAULT;
 }

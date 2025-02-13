@@ -2,7 +2,6 @@
 #define RequestHandler_h
 
 #include "ClientSocket.h"
-#include "Session.h"
 #include "protocol.h"
 
 #include <boost/thread/condition_variable.hpp>
@@ -20,9 +19,9 @@ public:
 
   tcp_status send_username(std::string username, std::string &err_msg);
 
-  void send_create(std::string &username, std::string &session_name);
+  color send_create(std::string &username, std::string &session_name);
 
-  void send_join(std::string &username, std::string &session_name);
+  color send_join(std::string &username, std::string &session_name);
 
   void send_where(std::string &username, std::string &target_username);
 

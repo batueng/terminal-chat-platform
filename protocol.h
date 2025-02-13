@@ -1,16 +1,28 @@
 #ifndef PROTOCOLS
 #define PROTOCOLS
 
+#include <boost/thread/mutex.hpp>
 #include <cstddef>
+#include <ncurses.h>
 #include <string>
 #include <vector>
-
-#include "boost/thread/mutex.hpp"
 
 // ================================= CONSTANTS =================================
 //
 const uint16_t MAX_SESSION_NAME = 20;
 const uint16_t MAX_USERNAME = 12;
+
+enum class color : int8_t {
+  DEFAULT = -1,
+  RED = COLOR_RED,
+  GREEN = COLOR_GREEN,
+  YELLOW = COLOR_YELLOW,
+  BLUE = COLOR_BLUE,
+  MAGENTA = COLOR_MAGENTA,
+  CYAN = COLOR_CYAN,
+  WHITE = COLOR_WHITE,
+  END = 8
+};
 
 // =============================== TCP PROTOCOLS ===============================
 
@@ -57,6 +69,7 @@ enum class tcp_status {
 struct tcp_hdr_t {
   tcp_method method;
   tcp_status status;
+  color c = color::DEFAULT;
   size_t data_len;
   char username[MAX_USERNAME];
   char session_name[MAX_SESSION_NAME];
@@ -72,7 +85,11 @@ enum class message_type : uint8_t {
 
 struct Message {
   message_type msg_t;
+
   std::string username;
+
+  color color;
+
   std::string text;
 
   std::vector<char> serialize_message();

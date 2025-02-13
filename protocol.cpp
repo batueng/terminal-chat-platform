@@ -17,6 +17,8 @@ std::vector<char> Message::serialize_message() {
 
   data.insert(data.end(), username.begin(), username.end());
 
+  data.push_back(static_cast<char>(color));
+
   uint32_t text_length = htonl(text.size());
   data.insert(data.end(), reinterpret_cast<const char *>(&text_length),
               reinterpret_cast<const char *>(&text_length) +
@@ -42,6 +44,8 @@ Message Message::deserialize_message(const std::vector<char> &data) {
 
   msg.username = std::string(data.data() + offset, username_length);
   offset += username_length;
+
+  msg.color = static_cast<enum color>(data[offset++]);
 
   uint32_t text_length;
   memcpy(&text_length, data.data() + offset, sizeof(text_length));

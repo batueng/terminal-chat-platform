@@ -9,7 +9,8 @@ RequestHandler::RequestHandler(std::string &_ip, uint16_t _port)
 tcp_status RequestHandler::send_username(std::string username,
                                          std::string &err_msg) {
   // create req hdr
-  tcp_hdr_t uname_hdr = {tcp_method::U_NAME, tcp_status::SUCCESS, 0};
+  tcp_hdr_t uname_hdr = {tcp_method::U_NAME, tcp_status::SUCCESS,
+                         color::DEFAULT, 0};
   std::memcpy(uname_hdr.username, username.c_str(), username.size());
   uname_hdr.username[username.size()] = '\0';
 
@@ -35,8 +36,8 @@ void RequestHandler::queue_res(tcp_hdr_t res_hdr, std::string msg) {
   res_cv.notify_one();
 }
 
-void RequestHandler::send_create(std::string &username,
-                                 std::string &session_name) {
+color RequestHandler::send_create(std::string &username,
+                                  std::string &session_name) {
   tcp_hdr_t create_hdr = {tcp_method::CREATE};
   std::memcpy(create_hdr.username, username.c_str(), username.size());
   create_hdr.username[username.size()] = '\0';
@@ -59,10 +60,12 @@ void RequestHandler::send_create(std::string &username,
   if (res_hdr.status != tcp_status::SUCCESS) {
     std::cout << err_msg << std::endl;
   };
+
+  return res_hdr.c;
 }
 
-void RequestHandler::send_join(std::string &username,
-                               std::string &session_name) {
+color RequestHandler::send_join(std::string &username,
+                                std::string &session_name) {
   tcp_hdr_t join_hdr = {tcp_method::JOIN};
   std::memcpy(join_hdr.username, username.c_str(), username.size());
   join_hdr.username[username.size()] = '\0';
@@ -84,6 +87,8 @@ void RequestHandler::send_join(std::string &username,
   if (res_hdr.status != tcp_status::SUCCESS) {
     std::cout << err_msg << std::endl;
   };
+
+  return res_hdr.c;
 }
 
 void RequestHandler::send_where(std::string &username,

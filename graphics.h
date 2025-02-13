@@ -1,12 +1,9 @@
 #include <cstddef>
 #include <cstdlib>
-#include <iostream>
-#include <sstream>
 #include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-#include <vector>
 
 void clear_screen();
 

@@ -9,9 +9,8 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <memory>
 #include <queue>
-#include <unordered_map>
+#include <random>
 #include <unordered_set>
-#include <vector>
 
 static uint64_t id_count;
 
@@ -41,7 +40,17 @@ private:
 
   std::unordered_set<std::shared_ptr<UserSocket>> users;
 
+  std::unordered_set<color> available_colors;
+
+  std::random_device rd;
+
+  std::mt19937 engine;
+
+  std::uniform_int_distribution<int> dist;
+
   void broadcast_msg();
+
+  color pick_color();
 };
 
 #endif

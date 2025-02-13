@@ -45,7 +45,7 @@ public:
 class NotFoundError : public TCPError {
 public:
   explicit NotFoundError(std::string key, tcp_status _status)
-      : TCPError(key + " already exists.", _status) {}
+      : TCPError(key + " not found.", _status) {}
 };
 
 class SessionNotFound : public NotFoundError {

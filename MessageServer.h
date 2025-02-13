@@ -3,12 +3,8 @@
 #define MessageServer_h
 
 #include <arpa/inet.h>
-#include <chrono>
 #include <cstring>
 #include <ctime>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
 #include <memory>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -16,8 +12,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <unordered_map>
-#include <unordered_set>
-#include <vector>
 
 #include "ResponseHandler.h"
 #include "ServerSocket.h"

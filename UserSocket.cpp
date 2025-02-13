@@ -33,7 +33,11 @@ std::string UserSocket::recv_len(int n) {
 
 std::string UserSocket::get_name() { return name; }
 
+color UserSocket::get_color() { return c; }
+
 void UserSocket::set_name(std::string _name) { name = _name; }
+
+void UserSocket::set_color(color _c) { c = _c; }
 
 void UserSocket::cleanup() {
   if (fd != -1) {

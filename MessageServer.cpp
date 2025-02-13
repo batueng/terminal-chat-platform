@@ -34,31 +34,41 @@ void MessageServer::handle_client(int client_fd) {
       std::string username = tcp_hdr->username;
 
       switch (tcp_hdr->method) {
-      case tcp_method::U_NAME:
+      case tcp_method::U_NAME: {
         user_sock.set_name(username);
-        insert_user(username,
-                    std::make_shared<UserSocket>(std::move(user_sock)));
+
+        std::shared_ptr<UserSocket> user_ptr =
+            std::make_shared<UserSocket>(std::move(user_sock));
+
+        insert_user(username, user_ptr);
         std::cout << "user inserted: " << username << std::endl;
-        res_handler.send_username_res(user_sock, tcp_status::SUCCESS);
+        res_handler.send_username_res(user_ptr, tcp_status::SUCCESS);
         break;
+      }
       case tcp_method::WHERE:
         break;
 
       case tcp_method::JOIN: {
         std::shared_ptr<Session> sess = get_session(sess_name);
-        sess->add_user(std::make_shared<UserSocket>(std::move(user_sock)));
+        std::shared_ptr<UserSocket> user_ptr =
+            std::make_shared<UserSocket>(std::move(user_sock));
+        sess->add_user(user_ptr);
         std::cout << "join session request: " << sess_name << std::endl;
-        res_handler.send_join_res(user_sock, tcp_status::SUCCESS);
-        // send join response
+
+        res_handler.send_join_res(user_ptr, tcp_status::SUCCESS);
         break;
       }
       case tcp_method::CREATE: {
         std::shared_ptr<Session> sess = insert_session(sess_name);
-        sess->add_user(std::make_shared<UserSocket>(std::move(user_sock)));
+
+        std::shared_ptr<UserSocket> user_ptr =
+            std::make_shared<UserSocket>(std::move(user_sock));
+
+        sess->add_user(user_ptr);
         std::cout << "create session request: " << sess_name << std::endl;
         boost::thread t(&Session::handle_session, sess.get());
-        // send create response
-        res_handler.send_create_res(user_sock, tcp_status::SUCCESS);
+
+        res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
         break;
       }
       case tcp_method::MESSAGE: {

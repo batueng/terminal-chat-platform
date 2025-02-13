@@ -1,8 +1,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
-#include <sstream>
-// #include <termkey.h>
+#include <iostream>
 #include <ncurses.h>
+#include <sstream>
 #include <unistd.h>
 
 #include "Client.h"
@@ -66,6 +66,7 @@ void Client::queue_chat(Message msg) {
 }
 
 void Client::print_session_screen() {
+  // TODO: Move all this to constructor when batu fixes login/help
   initscr();
   use_default_colors();
   start_color();
@@ -73,6 +74,11 @@ void Client::print_session_screen() {
   noecho();
   keypad(stdscr, TRUE);
   curs_set(1);
+
+  for (uint8_t i = static_cast<uint8_t>(color::RED);
+       i < static_cast<uint8_t>(color::END); ++i) {
+    init_pair(i, i, -1);
+  }
 
   int height, width;
   getmaxyx(stdscr, height, width);
@@ -124,7 +130,7 @@ void Client::print_session_screen() {
       return;
     }
 
-    Message msg = {message_type::CHAT, username, client_message};
+    Message msg = {message_type::CHAT, username, c, client_message};
     req_handler.send_message(username, curr_sess, msg);
     queue_chat(msg);
   }
@@ -160,7 +166,8 @@ void Client::print_messages() {
   int win_height = getmaxy(messages_win);
   int interiorWidth = win_width;
 
-  mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s", curr_sess.c_str());
+  mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s",
+            curr_sess.c_str());
 
   int y = 3;
 
@@ -187,12 +194,13 @@ void Client::print_messages() {
       int available_rec = interiorWidth - 1;
 
       if (msg.username != prev_sender) {
-        std::string header = msg.username + ": " + msg.text;
+        wattron(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
+        mvwprintw(messages_win, y, 1, "%s", msg.username.c_str());
+        wattroff(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
 
-        if ((int)header.size() > available_rec)
-          header = header.substr(0, available_rec);
+        mvwprintw(messages_win, y, 1 + msg.username.size(), ": %s",
+                  msg.text.c_str());
 
-        mvwprintw(messages_win, y, 1, "%s", header.c_str());
         y++;
         prev_sender = msg.username;
 
@@ -253,7 +261,7 @@ void Client::run() {
 
       // send join/create/where
       if (command == "join") {
-        req_handler.send_join(username, arg);
+        c = req_handler.send_join(username, arg);
         {
           boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
           curr_sess = arg;
@@ -262,7 +270,7 @@ void Client::run() {
         print_session_screen();
 
       } else if (command == "create") {
-        req_handler.send_create(username, arg);
+        c = req_handler.send_create(username, arg);
         {
           boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
           curr_sess = arg;
