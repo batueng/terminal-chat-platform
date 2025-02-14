@@ -24,6 +24,7 @@ public:
   template <typename E>
   V &find(const K &key) {
     boost::shared_lock<boost::shared_mutex> lock(mtx);
+
     auto it = data.find(key);
     if (it != data.end()) {
       return it->second;

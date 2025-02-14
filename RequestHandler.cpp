@@ -8,11 +8,9 @@ RequestHandler::RequestHandler(std::string &_ip, uint16_t _port)
 
 tcp_status RequestHandler::send_username(std::string username,
                                          std::string &err_msg) {
-  // create req hdr
-  tcp_hdr_t uname_hdr = {tcp_method::U_NAME, tcp_status::SUCCESS,
-                         color::DEFAULT, 0};
-  std::memcpy(uname_hdr.username, username.c_str(), username.size());
-  uname_hdr.username[username.size()] = '\0';
+
+  tcp_hdr_t uname_hdr(tcp_method::U_NAME, tcp_status::SUCCESS, color::DEFAULT,
+                      0, username, "");
 
   client_sock.send_len(&uname_hdr, sizeof(tcp_hdr_t));
 
@@ -38,12 +36,9 @@ void RequestHandler::queue_res(tcp_hdr_t res_hdr, std::string msg) {
 
 color RequestHandler::send_create(std::string &username,
                                   std::string &session_name) {
-  tcp_hdr_t create_hdr = {tcp_method::CREATE};
-  std::memcpy(create_hdr.username, username.c_str(), username.size());
-  create_hdr.username[username.size()] = '\0';
-  std::memcpy(create_hdr.session_name, session_name.c_str(),
-              session_name.size());
-  create_hdr.session_name[session_name.size()] = '\0';
+
+  tcp_hdr_t create_hdr(tcp_method::CREATE, tcp_status::SUCCESS, color::DEFAULT,
+                       0, username, session_name);
 
   // send header
   client_sock.send_len(&create_hdr, sizeof(tcp_hdr_t));
@@ -66,12 +61,9 @@ color RequestHandler::send_create(std::string &username,
 
 color RequestHandler::send_join(std::string &username,
                                 std::string &session_name) {
-  tcp_hdr_t join_hdr = {tcp_method::JOIN};
-  std::memcpy(join_hdr.username, username.c_str(), username.size());
-  join_hdr.username[username.size()] = '\0';
-  std::memcpy(join_hdr.session_name, session_name.c_str(), session_name.size());
-  join_hdr.session_name[session_name.size()] = '\0';
 
+  tcp_hdr_t join_hdr(tcp_method::JOIN, tcp_status::SUCCESS, color::DEFAULT, 0,
+                     username, session_name);
   // send header
   client_sock.send_len(&join_hdr, sizeof(tcp_hdr_t));
 
@@ -93,10 +85,9 @@ color RequestHandler::send_join(std::string &username,
 
 void RequestHandler::send_where(std::string &username,
                                 std::string &target_username) {
-  tcp_hdr_t where_hdr = {tcp_method::WHERE};
-  where_hdr.data_len = target_username.size();
-  std::memcpy(where_hdr.username, username.c_str(), username.size());
-  where_hdr.username[username.size()] = '\0';
+
+  tcp_hdr_t where_hdr(tcp_method::WHERE, tcp_status::SUCCESS, color::DEFAULT,
+                      target_username.size(), username, "");
 
   // send header
   client_sock.send_len(&where_hdr, sizeof(tcp_hdr_t));
@@ -119,18 +110,12 @@ void RequestHandler::send_where(std::string &username,
 
 void RequestHandler::send_message(std::string &username,
                                   std::string &session_name, Message &msg) {
-  tcp_hdr_t message_hdr = {tcp_method::MESSAGE};
 
   std::vector<char> serialized_msg = msg.serialize_message();
-  message_hdr.data_len = serialized_msg.size();
 
-  std::memcpy(&message_hdr.username, username.c_str(), username.size());
-  message_hdr.username[username.size()] = '\0';
+  tcp_hdr_t msg_hdr(tcp_method::MESSAGE, tcp_status::SUCCESS, msg.color,
+                    serialized_msg.size(), username, session_name);
 
-  std::memcpy(&message_hdr.session_name, session_name.c_str(),
-              session_name.size());
-  message_hdr.session_name[session_name.size()] = '\0';
-
-  client_sock.send_len(&message_hdr, sizeof(tcp_hdr_t));
+  client_sock.send_len(&msg_hdr, sizeof(tcp_hdr_t));
   client_sock.send_len(serialized_msg.data(), serialized_msg.size());
 }

@@ -43,13 +43,10 @@ void Session::broadcast_msg() {
     if (msg.username == user->name)
       continue;
 
-    tcp_hdr_t message_hdr;
+    tcp_hdr_t msg_hdr(tcp_method::MESSAGE, tcp_status::SUCCESS, msg.color,
+                      serialized_msg.size(), msg.username, "");
 
-    message_hdr.method = tcp_method::MESSAGE;
-    message_hdr.data_len = serialized_msg.size();
-    std::memcpy(message_hdr.session_name, name.c_str(), MAX_SESSION_NAME);
-
-    user->send_len(&message_hdr, sizeof(message_hdr));
+    user->send_len(&msg_hdr, sizeof(msg_hdr));
     user->send_len(serialized_msg.data(), serialized_msg.size());
   }
 }

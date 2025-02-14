@@ -42,6 +42,7 @@ void MessageServer::handle_client(int client_fd) {
 
         users.emplace<DuplicateUser>(username, user_ptr);
         std::cout << "user inserted: " << username << std::endl;
+
         res_handler.send_username_res(user_ptr, tcp_status::SUCCESS);
         break;
       }
@@ -51,8 +52,10 @@ void MessageServer::handle_client(int client_fd) {
       case tcp_method::JOIN: {
         std::shared_ptr<Session> sess =
             sessions.find<SessionNotFound>(sess_name);
+
         std::shared_ptr<UserSocket> user_ptr =
             std::make_shared<UserSocket>(std::move(user_sock));
+
         sess->add_user(user_ptr);
         std::cout << "join session request: " << sess_name << std::endl;
 
@@ -68,6 +71,7 @@ void MessageServer::handle_client(int client_fd) {
 
         sess->add_user(user_ptr);
         std::cout << "create session request: " << sess_name << std::endl;
+
         boost::thread t(&Session::handle_session, sess.get());
 
         res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);

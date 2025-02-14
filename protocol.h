@@ -73,6 +73,16 @@ struct tcp_hdr_t {
   size_t data_len;
   char username[MAX_USERNAME];
   char session_name[MAX_SESSION_NAME];
+
+  tcp_hdr_t(tcp_method _method, tcp_status _status, color _c, size_t _dlen,
+            std::string _uname, std::string _sname)
+      : method(_method), status(_status), c(_c), data_len(_dlen) {
+    memcpy(username, _uname.c_str(), _uname.size());
+    username[_uname.size()] = '\0';
+
+    memcpy(session_name, _sname.c_str(), _sname.size());
+    session_name[_sname.size()] = '\0';
+  }
 };
 
 // ============================= MESSAGE PROTOCOLS =============================
