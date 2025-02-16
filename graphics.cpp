@@ -7,179 +7,201 @@
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
+#include <ncurses.h>
 
 #include "graphics.h"
+#include "protocol.h"
 
-void clear_screen() { std::cout << "\033[2J\033[H"; }
-
-void get_terminal_size(int &rows, int &cols) {
-  struct winsize w;
-  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-  rows = w.ws_row;
-  cols = w.ws_col;
+void print_centered(WINDOW *win, int y, int width, const std::string &text) {
+  int visible_length = text.size(); // text no longer has ANSI escape codes
+  int x = (width - visible_length) / 2;
+  mvwprintw(win, y, x, "%s", text.c_str());
 }
 
-std::string apply_grad(const char &ch, int row, int col, int maxDimension) {
-  if (ch == ' ' || ch == '\n')
-    return std::string(1, ch);
-
-  const std::vector<std::string> colors = {
-      "\033[34m",     // blue
-      "\033[36m",     // cyan
-      "\033[32m",     // neon green
-      "\033[38;5;49m" // bright green
-  };
-  int gradientIndex =
-      ((row + col) * colors.size()) / maxDimension % colors.size();
-  return colors[gradientIndex] + ch + "\033[0m";
-}
-
-void print_ascii_grad(const std::string &asciiArt, int rows, int cols) {
-  // const int ascii_rows = 8;
-  const int ascii_cols = 25;
-
-  std::string line;
-  std::istringstream stream(asciiArt);
-  int art_row = 0;
-
-  while (std::getline(stream, line)) {
-    int padding = (cols - line.size()) / 2;
-    if (padding > 0) {
-      std::cout << std::string(padding, ' ');
-    }
-
-    int art_col = 0;
-    for (const char &ch : line) {
-      std::cout << apply_grad(ch, art_row, art_col, ascii_cols);
-      art_col++;
-    }
-    std::cout << std::endl;
-
-    art_row++;
-  }
-}
-
-void print_centered(const std::string &text, int width) {
-  std::string stripped_text;
-  bool in_escape = false;
-  for (char c : text) {
-    if (c == '\033') {
-      in_escape = true;
-    } else if (in_escape && c == 'm') {
-      in_escape = false;
-    } else if (!in_escape) {
-      stripped_text += c;
-    }
-  }
-
-  int visible_length = stripped_text.size();
-  int padding = (width - visible_length) / 2;
-
-  if (padding > 0) {
-    std::cout << std::string(padding, ' ');
-  }
-
-  std::cout << text << std::endl;
-}
-
-int display_help_screen(int rows, int cols) {
-  const std::string border_color = "\033[36m";
-  const std::string reset_color = "\033[0m";
-
+int display_help_screen(WINDOW *win) {
+  int rows, cols;
+  getmaxyx(win, rows, cols);
   int printed_rows = 0;
 
+  // Set border color (assume pair 6 is set to cyan)
+  wattron(win, COLOR_PAIR(6));
   std::string top_border(cols, '=');
-  std::cout << border_color << top_border << reset_color << std::endl;
+  mvwprintw(win, printed_rows, 0, "%s", top_border.c_str());
+  printed_rows++;
+  wattroff(win, COLOR_PAIR(6));
+
+  // Print the help screen title centered
+  print_centered(win, printed_rows, cols, "Help Screen");
   printed_rows++;
 
-  print_centered(border_color + "Help Screen" + reset_color, cols);
-  std::cout << std::endl;
-  printed_rows += 2;
+  // Blank line for spacing
+  printed_rows++;
 
+  // Define command list (command and description)
   std::vector<std::pair<std::string, std::string>> commands = {
-      {"create <session_name>",
-       "Create a group chat with the name session_name"},
-      {"join <session_name>", "Join a group chat with the name session_name"},
-      {"where <user_name>",
-       "Returns the session_name that the user_name is in"},
-      {"leave", "Leave the session you are currently in"},
-      {"exit", "Stop the TCP application"}};
+      {"create <session_name>", "Create a group chat with the name session_name"},
+      {"join <session_name>",   "Join a group chat with the name session_name"},
+      {"where <user_name>",     "Returns the session_name that the user_name is in"},
+      {"leave",                 "Leave the session you are currently in"},
+      {"exit",                  "Stop the TCP application"}
+  };
 
+  // Determine the maximum command length for formatting
   int max_cmd_length = 0;
   for (const auto &command : commands) {
-    max_cmd_length =
-        std::max(max_cmd_length, static_cast<int>(command.first.size()));
+      max_cmd_length = std::max(max_cmd_length, static_cast<int>(command.first.size()));
   }
+  int description_width = cols - max_cmd_length - 6; // extra space for borders and padding
 
-  int description_width = cols - max_cmd_length - 6;
-
+  // For each command, print the command and its (wrapped) description
   for (const auto &command : commands) {
-    const std::string &cmd = command.first;
-    const std::string &desc = command.second;
+      const std::string &cmd = command.first;
+      const std::string &desc = command.second;
 
-    std::istringstream desc_stream(desc);
-    std::string word;
-    std::string line;
-    std::vector<std::string> wrapped_lines;
-    while (desc_stream >> word) {
-      if (line.size() + word.size() + 1 >
-          static_cast<size_t>(description_width)) {
-        wrapped_lines.push_back(line);
-        line.clear();
+      // Wrap the description text
+      std::istringstream desc_stream(desc);
+      std::string word, line;
+      std::vector<std::string> wrapped_lines;
+      while (desc_stream >> word) {
+          if (line.size() + word.size() + (line.empty() ? 0 : 1) > static_cast<size_t>(description_width)) {
+              wrapped_lines.push_back(line);
+              line.clear();
+          }
+          if (!line.empty()) {
+              line += " ";
+          }
+          line += word;
       }
       if (!line.empty()) {
-        line += " ";
+          wrapped_lines.push_back(line);
       }
-      line += word;
-    }
-    if (!line.empty()) {
-      wrapped_lines.push_back(line);
-    }
 
-    std::cout << border_color << "| " << reset_color << cmd
-              << std::string(max_cmd_length - cmd.size(), ' ') << " "
-              << wrapped_lines[0]
-              << std::string(description_width - wrapped_lines[0].size(), ' ')
-              << border_color << " |" << reset_color << std::endl;
-    printed_rows++;
+      // Print the first line with the command text.
+      // Print left border in cyan.
+      wattron(win, COLOR_PAIR(6));
+      mvwprintw(win, printed_rows, 0, "| ");
+      wattroff(win, COLOR_PAIR(6));
 
-    for (size_t i = 1; i < wrapped_lines.size(); ++i) {
-      std::cout << border_color << "| " << reset_color
-                << std::string(max_cmd_length + 1, ' ') << wrapped_lines[i]
-                << std::string(description_width - wrapped_lines[i].size(), ' ')
-                << border_color << " |" << reset_color << std::endl;
+      // Print the command text
+      wprintw(win, "%s", cmd.c_str());
+      // Pad the command to reach max_cmd_length
+      int pad = max_cmd_length - static_cast<int>(cmd.size());
+      for (int i = 0; i < pad; i++) {
+          wprintw(win, " ");
+      }
+      wprintw(win, " ");
+
+      // Print the first line of the wrapped description
+      if (!wrapped_lines.empty()) {
+          wprintw(win, "%s", wrapped_lines[0].c_str());
+      }
+      // Pad the description to the required width
+      int desc_pad = description_width - (wrapped_lines.empty() ? 0 : wrapped_lines[0].size());
+      for (int i = 0; i < desc_pad; i++) {
+          wprintw(win, " ");
+      }
+      // Print right border in cyan.
+      wattron(win, COLOR_PAIR(6));
+      wprintw(win, " |");
+      wattroff(win, COLOR_PAIR(6));
       printed_rows++;
-    }
+
+      // Print any additional wrapped lines of the description
+      for (size_t i = 1; i < wrapped_lines.size(); i++) {
+          wattron(win, COLOR_PAIR(6));
+          mvwprintw(win, printed_rows, 0, "| ");
+          wattroff(win, COLOR_PAIR(6));
+
+          // Print spaces for the command column
+          for (int j = 0; j < max_cmd_length + 1; j++) {
+              wprintw(win, " ");
+          }
+          // Print the additional wrapped line
+          wprintw(win, "%s", wrapped_lines[i].c_str());
+          int pad2 = description_width - static_cast<int>(wrapped_lines[i].size());
+          for (int j = 0; j < pad2; j++) {
+              wprintw(win, " ");
+          }
+          wattron(win, COLOR_PAIR(6));
+          wprintw(win, " |");
+          wattroff(win, COLOR_PAIR(6));
+          printed_rows++;
+      }
   }
 
-  std::cout << border_color << top_border << reset_color << std::endl;
+  // Print the bottom border
+  wattron(win, COLOR_PAIR(6));
+  mvwprintw(win, printed_rows, 0, "%s", top_border.c_str());
+  wattroff(win, COLOR_PAIR(6));
   printed_rows++;
 
+  // Refresh the window to show the help screen
+  wrefresh(win);
   return printed_rows;
 }
 
-void print_header() {
-  const std::string title_ascii = " _______           \n"
-                                  "|__   __|          \n"
-                                  "   | | ____ _____  \n"
-                                  "   | |/ ___|  _  \\ \n"
-                                  "   | | |____ (_) | \n"
-                                  "   |_|\\____| |___/ \n"
-                                  "           | |     \n"
-                                  "           |_|     \n";
+void print_header(WINDOW *win) {
+    int win_height, win_width;
+    getmaxyx(win, win_height, win_width);
 
-  const std::string header = "\033[1;37mWELCOME TO\033[0m";
-  const std::string footer = "\033[1;37mTerminal Chat Platform\033[0m";
+    // Define header and footer text
+    const char *header = "WELCOME TO";
+    const char *footer = "Terminal Chat Platform";
 
-  int rows, cols;
-  get_terminal_size(rows, cols);
+    // Define the ASCII art logo as an array of strings
+    const char *logo[] = {
+        " _______           ",
+        "|__   __|          ",
+        "   | | ____ _____  ",
+        "   | |/ ___|  _  \\ ",
+        "   | | |____ (_) | ",
+        "   |_|\\____| |___/ ",
+        "           | |     ",
+        "           |_|     "
+    };
+    const int logo_lines = 8;
+    const int ascii_cols = 25;  // Used for gradient calculation
 
-  std::cout << std::endl << std::endl;
-  print_centered(header, cols);
-  std::cout << std::endl;
+    // Clear the window and draw a border
+    werase(win);
 
-  print_ascii_grad(title_ascii, rows, cols);
-  std::cout << std::endl;
+    int y = 1;  // Starting row (inside the border)
 
-  print_centered(footer, cols);
+    // Center and print the header text
+    int header_x = (win_width - (int)std::strlen(header)) / 2;
+    mvwprintw(win, y, header_x, "%s", header);
+    y += 2;  // Add some vertical spacing
+
+    // Print the ASCII art logo with a gradient effect.
+    // The gradient is computed based on the current row and column.
+    for (int i = 0; i < logo_lines; i++) {
+        const char *line = logo[i];
+        int line_length = std::strlen(line);
+        int x = (win_width - line_length) / 2;  // Center the line horizontally
+
+        for (int j = 0; j < line_length; j++) {
+            char ch = line[j];
+            if (ch == ' ') {
+                // Print spaces normally
+                mvwaddch(win, y, x + j, ' ');
+            } else {
+                // Compute gradient index: choose one of 4 color pairs
+                int num_colors = 4;
+                int gradientIndex = (((i + j) * num_colors) / ascii_cols) % num_colors + static_cast<int>(color::BLUE);
+                // Use color pair (gradientIndex + 1)
+                wattron(win, COLOR_PAIR(gradientIndex));
+                mvwaddch(win, y, x + j, ch);
+                wattroff(win, COLOR_PAIR(gradientIndex));
+            }
+        }
+        y++;  // Move to the next line for the logo
+    }
+
+    // Print the footer text centered
+    y++;  // Add extra spacing after the logo
+    int footer_x = (win_width - (int)std::strlen(footer)) / 2;
+    mvwprintw(win, y, footer_x, "%s", footer);
+
+    // Refresh the window to display the header
+    wrefresh(win);
 }

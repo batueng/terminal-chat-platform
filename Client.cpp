@@ -34,7 +34,7 @@ void Client::print_login_screen() {
   getmaxyx(stdscr, height, width);
 
   login_win = newwin(height, width, 0, 0);
-  // print_header();
+  print_header(login_win);
 
   mvwprintw(login_win, height - 1, 1, "Enter your username: ");
   wrefresh(login_win);
@@ -69,8 +69,12 @@ void Client::print_home_screen() {
   std::string welcome_text = "Welcome, " + username + "!";
   mvwprintw(home_win, 1, 1, welcome_text.c_str());
   wrefresh(home_win);
-  // print_header();
-  // display_help_screen(term_rows, term_cols);
+
+  print_header(home_win);
+
+  int header_height = 15;
+  WINDOW* help_win = derwin(home_win, height - header_height, width, header_height, 0);
+  display_help_screen(help_win);
 }
 
 void Client::msg_update_listener() {
@@ -98,8 +102,8 @@ void Client::print_session_screen() {
   getmaxyx(stdscr, height, width);
 
   // Create the windows without borders.
-  messages_win = newwin(height - 3, width, 0, 0);
-  input_win = newwin(3, width, height - 3, 0);
+  messages_win = newwin(height - 2, width, 0, 0);
+  input_win = newwin(2, width, height - 2, 0);
 
   scrollok(messages_win, TRUE);
 
@@ -178,8 +182,10 @@ void Client::print_messages() {
   int win_height = getmaxy(messages_win);
   int interiorWidth = win_width;
 
+  wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
   mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s",
             curr_sess.c_str());
+  wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
 
   int y = 3;
 

@@ -4,17 +4,10 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+#include <ncurses.h>
 
-void clear_screen();
+void print_centered(WINDOW *win, int y, int width, const std::string &text);
 
-void get_terminal_size(int &rows, int &cols);
+int display_help_screen(WINDOW *win);
 
-std::string apply_grad(const char &ch, int row, int col, int maxDimension);
-
-void print_ascii_grad(const std::string &asciiArt, int rows, int cols);
-
-void print_centered(const std::string &text, int width);
-
-int display_help_screen(int rows, int cols);
-
-void print_header();
+void print_header(WINDOW* win);
