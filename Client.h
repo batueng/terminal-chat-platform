@@ -35,9 +35,11 @@ private:
   // // Signal handler for window size
   // static void handle_winch(int sig);
 
+  WINDOW *login_win;
+
+  WINDOW *home_win;
   // ncurses windows to manage messages and input space
   WINDOW *messages_win;
-
   WINDOW *input_win;
 
   std::string username;

@@ -10,39 +10,67 @@
 #include "protocol.h"
 
 Client::Client(std::string &_server_ip, int _server_port)
-    : req_handler(_server_ip, _server_port) {}
+    : req_handler(_server_ip, _server_port) {
+  initscr();
+  use_default_colors();
+  start_color();
+  cbreak();
+  noecho();
+  keypad(stdscr, TRUE);
+  curs_set(1);
 
-Client::~Client() {}
+  for (uint8_t i = static_cast<uint8_t>(color::RED);
+       i < static_cast<uint8_t>(color::END); ++i) {
+    init_pair(i, i, -1);
+  }
+}
+
+Client::~Client() {
+  endwin();
+}
 
 void Client::print_login_screen() {
-  get_terminal_size(term_rows, term_cols);
+  int height, width;
+  getmaxyx(stdscr, height, width);
 
-  print_header();
+  login_win = newwin(height, width, 0, 0);
+  // print_header();
 
-  for (int i = 0; i < term_rows - 16; ++i) {
-    std::cout << std::endl;
-  }
+  mvwprintw(login_win, height - 1, 1, "Enter your username: ");
+  wrefresh(login_win);
 
-  std::cout << "Enter your username: ";
-  std::getline(std::cin, username);
+  echo();
+
+  char username_in[MAX_USERNAME];
+  wgetnstr(login_win, username_in, MAX_USERNAME - 1);
+  username = std::string(username_in);
 
   // TODO: add validation checking on username
   std::string err_msg;
 
   while (req_handler.send_username(username, err_msg) != tcp_status::SUCCESS) {
-    std::cout << err_msg << std::endl;
-    std::cout << "Enter your username: ";
-    std::getline(std::cin, username);
+    mvwprintw(login_win, height - 2, 1, err_msg.c_str());
+    mvwprintw(login_win, height - 1, 1, "Enter your username: ");
+    wrefresh(login_win);
+
+    wgetnstr(login_win, username_in, MAX_USERNAME - 1);
+    username = std::string(username_in);
   }
+
+  delwin(login_win);
 }
 
 void Client::print_home_screen() {
-  std::cout << std::endl << std::endl;
-  std::cout << "Welcome, " << username << "!\n";
+  int height, width;
+  getmaxyx(stdscr, height, width);
 
-  print_header();
-  std::cout << std::endl << std::endl;
-  display_help_screen(term_rows, term_cols);
+  home_win = newwin(height, width, 0, 0);
+
+  std::string welcome_text = "Welcome, " + username + "!";
+  mvwprintw(home_win, 1, 1, welcome_text.c_str());
+  wrefresh(home_win);
+  // print_header();
+  // display_help_screen(term_rows, term_cols);
 }
 
 void Client::msg_update_listener() {
@@ -66,20 +94,6 @@ void Client::queue_chat(Message msg) {
 }
 
 void Client::print_session_screen() {
-  // TODO: Move all this to constructor when batu fixes login/help
-  initscr();
-  use_default_colors();
-  start_color();
-  cbreak();
-  noecho();
-  keypad(stdscr, TRUE);
-  curs_set(1);
-
-  for (uint8_t i = static_cast<uint8_t>(color::RED);
-       i < static_cast<uint8_t>(color::END); ++i) {
-    init_pair(i, i, -1);
-  }
-
   int height, width;
   getmaxyx(stdscr, height, width);
 
@@ -89,7 +103,6 @@ void Client::print_session_screen() {
 
   scrollok(messages_win, TRUE);
 
-  // Erase and refresh without drawing a box.
   werase(messages_win);
   wrefresh(messages_win);
   werase(input_win);
@@ -126,7 +139,6 @@ void Client::print_session_screen() {
       // Clean up the windows.
       delwin(messages_win);
       delwin(input_win);
-      endwin();
       return;
     }
 
@@ -229,13 +241,21 @@ void Client::run() {
 
   std::string line, command;
   while (true) {
-    get_terminal_size(term_rows, term_cols);
+    int height, width;
+    getmaxyx(stdscr, height, width);
 
-    for (int i = 0; i < term_rows - 28; ++i) {
-      std::cout << std::endl;
-    }
-    std::cout << "> ";
-    std::getline(std::cin, line);
+    mvwprintw(home_win, height - 1, 1, "> ");
+    wrefresh(home_win);
+
+    echo();
+
+    char line_in[1024];
+    wgetnstr(home_win, line_in, 1024 - 1);
+
+    noecho();
+
+    line = std::string(line_in);
+
     boost::trim(line);
 
     std::istringstream stream(line);
@@ -250,8 +270,8 @@ void Client::run() {
     if (command == "join" || command == "create" || command == "where") {
       // valid pattern
       if (!boost::regex_match(line, boost::regex(pattern))) {
-        std::cout << "Error: Invalid command. See help for proper format."
-                  << std::endl;
+        mvwprintw(home_win, height - 2, 1, "Error: Invalid command. See help for proper format.");
+        wrefresh(home_win);
         continue;
       }
 
@@ -267,6 +287,7 @@ void Client::run() {
           curr_sess = arg;
           sess_cv.notify_all();
         }
+        delwin(home_win);
         print_session_screen();
 
       } else if (command == "create") {
@@ -276,6 +297,7 @@ void Client::run() {
           curr_sess = arg;
           sess_cv.notify_all();
         }
+        delwin(home_win);
         print_session_screen();
 
       } else if (command == "where") {
@@ -287,10 +309,10 @@ void Client::run() {
     } else if (line == "help") {
 
     } else if (line == "exit") {
-      std::cout << "Exiting application. Goodbye!\n";
+      mvwprintw(home_win, height - 2, 1, "Exiting application. Goodbye!");
       break;
     } else {
-      std::cout << "Unknown command" << std::endl;
+      mvwprintw(home_win, height - 2, 1, "Unknown command");
     }
   }
   updt_listener.join();
