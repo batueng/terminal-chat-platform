@@ -1,16 +1,20 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
-#include <iostream>
 #include <ncurses.h>
+#include <csignal>
 #include <sstream>
 #include <unistd.h>
+#include <fstream>
 
 #include "Client.h"
 #include "graphics.h"
 #include "protocol.h"
 
-Client::Client(std::string &_server_ip, int _server_port)
-    : req_handler(_server_ip, _server_port) {
+volatile sig_atomic_t Client::window_resized = 0;
+struct sigaction Client::sa;
+
+Client::Client(std::string &_server_ip, int _server_port, std::string debug_file)
+    : req_handler(_server_ip, _server_port), fout(debug_file) {
   initscr();
   use_default_colors();
   start_color();
@@ -23,10 +27,21 @@ Client::Client(std::string &_server_ip, int _server_port)
        i < static_cast<uint8_t>(color::END); ++i) {
     init_pair(i, i, -1);
   }
+
+  // Installing SIGWINCH handler
+  sa.sa_handler = handle_winch;
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  sigaction(SIGWINCH, &sa, nullptr);
 }
 
 Client::~Client() {
   endwin();
+}
+
+void Client::handle_winch(int sig) {
+  window_resized = 1;
+  sigaction(SIGWINCH, &sa, nullptr);
 }
 
 void Client::print_login_screen() {
@@ -35,21 +50,51 @@ void Client::print_login_screen() {
 
   login_win = newwin(height, width, 0, 0);
   print_header(login_win);
-
   mvwprintw(login_win, height - 1, 1, "Enter your username: ");
   wrefresh(login_win);
 
   echo();
 
   char username_in[MAX_USERNAME];
-  wgetnstr(login_win, username_in, MAX_USERNAME - 1);
+
+  bool input_received = false;
+  while (!input_received) {
+    if (window_resized) {
+      window_resized = 0;  // Reset the flag
+      
+      endwin();
+      refresh();
+
+      getmaxyx(stdscr, height, width);
+
+      login_win = newwin(height, width, 0, 0);
+      print_header(login_win);
+      mvwprintw(login_win, height - 1, 1, "Enter your username: ");
+      wrefresh(login_win);
+    }
+
+    wgetnstr(login_win, username_in, MAX_USERNAME - 1);
+    input_received = true;
+  }
+
   username = std::string(username_in);
 
-  // TODO: add validation checking on username
   std::string err_msg;
-
   while (req_handler.send_username(username, err_msg) != tcp_status::SUCCESS) {
-    mvwprintw(login_win, height - 2, 1, err_msg.c_str());
+    if (window_resized) {
+      window_resized = 0;
+
+      endwin();
+      refresh();
+
+      getmaxyx(stdscr, height, width);
+
+      delwin(login_win);
+      login_win = newwin(height, width, 0, 0);
+    }
+
+    print_header(login_win);
+    mvwprintw(login_win, height - 2, 1, "%s", err_msg.c_str());
     mvwprintw(login_win, height - 1, 1, "Enter your username: ");
     wrefresh(login_win);
 
@@ -59,6 +104,7 @@ void Client::print_login_screen() {
 
   delwin(login_win);
 }
+
 
 void Client::print_home_screen() {
   int height, width;
@@ -328,7 +374,7 @@ void Client::run() {
 int main(int argc, char *argv[]) {
   std::string server_ip = "127.0.0.1";
   int server_port = 8080;
-  Client c(server_ip, server_port);
+  Client c(server_ip, server_port, "out.txt");
   c.run();
   return 0;
 }

@@ -15,10 +15,11 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
+#include <fstream>
 
 class Client {
 public:
-  Client(std::string &server_ip, int server_port);
+  Client(std::string &server_ip, int server_port, std::string debug_file);
 
   ~Client();
 
@@ -27,13 +28,12 @@ public:
 private:
   friend class RequestHandler;
 
-  // should implement this to allow terminal resizing
-  // // Flag to indicate window has been resized
-  // static volatile sig_atomic_t resized;
-  // struct sigaction sa;
-  //
-  // // Signal handler for window size
-  // static void handle_winch(int sig);
+  // Flag to indicate window has been resized
+  static volatile sig_atomic_t window_resized;
+  static struct sigaction sa;
+
+  // Signal handler for window size
+  static void handle_winch(int sig);
 
   WINDOW *login_win;
 
@@ -63,6 +63,9 @@ private:
   RequestHandler req_handler;
 
   int term_rows, term_cols;
+
+  // Use for debugging
+  std::ofstream fout;
 
   void print_login_screen();
 
