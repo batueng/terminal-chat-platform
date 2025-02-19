@@ -33,6 +33,11 @@ public:
     throw E(key);
   }
 
+  void erase(const K &key) {
+    boost::shared_lock<boost::shared_mutex> lock(mtx);
+    data.erase(key);
+  }
+
 private:
   boost::shared_mutex mtx;
 

@@ -1,6 +1,5 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
-#include <iostream>
 #include <ncurses.h>
 #include <sstream>
 #include <unistd.h>
@@ -25,9 +24,7 @@ Client::Client(std::string &_server_ip, int _server_port)
   }
 }
 
-Client::~Client() {
-  endwin();
-}
+Client::~Client() { endwin(); }
 
 void Client::print_login_screen() {
   int height, width;
@@ -73,7 +70,8 @@ void Client::print_home_screen() {
   print_header(home_win);
 
   int header_height = 15;
-  WINDOW* help_win = derwin(home_win, height - header_height, width, header_height, 0);
+  WINDOW *help_win =
+      derwin(home_win, height - header_height, width, header_height, 0);
   display_help_screen(help_win);
 }
 
@@ -135,9 +133,10 @@ void Client::print_session_screen() {
     noecho();
 
     if (client_message == ":leave") {
-      boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
+
+      req_handler.send_leave(username, curr_sess);
       curr_sess.clear();
-      sess_cv.notify_all();
+
       print_home_screen();
 
       // Clean up the windows.
@@ -276,7 +275,8 @@ void Client::run() {
     if (command == "join" || command == "create" || command == "where") {
       // valid pattern
       if (!boost::regex_match(line, boost::regex(pattern))) {
-        mvwprintw(home_win, height - 2, 1, "Error: Invalid command. See help for proper format.");
+        mvwprintw(home_win, height - 2, 1,
+                  "Error: Invalid command. See help for proper format.");
         wrefresh(home_win);
         continue;
       }
@@ -288,37 +288,38 @@ void Client::run() {
       // send join/create/where
       if (command == "join") {
         c = req_handler.send_join(username, arg);
-        {
-          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
-          curr_sess = arg;
-          sess_cv.notify_all();
-        }
+        curr_sess = arg;
+
         delwin(home_win);
         print_session_screen();
 
       } else if (command == "create") {
         c = req_handler.send_create(username, arg);
-        {
-          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
-          curr_sess = arg;
-          sess_cv.notify_all();
-        }
+        curr_sess = arg;
+
         delwin(home_win);
         print_session_screen();
 
       } else if (command == "where") {
-        req_handler.send_where(username, arg);
+        std::string user_loc = req_handler.send_where(username, arg);
+
+        std::string where_msg = "User " + arg + " is in session: " + user_loc;
+        mvwprintw(home_win, height - 2, 1, where_msg.c_str());
+        wmove(home_win, height - 1, 1);
+        wclrtoeol(home_win);
+        wrefresh(home_win);
       }
-      // recv success
-      // set session_name/username
 
     } else if (line == "help") {
-
+      print_home_screen();
     } else if (line == "exit") {
       mvwprintw(home_win, height - 2, 1, "Exiting application. Goodbye!");
       break;
     } else {
       mvwprintw(home_win, height - 2, 1, "Unknown command");
+      wmove(home_win, height - 1, 1);
+      wclrtoeol(home_win);
+      wrefresh(home_win);
     }
   }
   updt_listener.join();

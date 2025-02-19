@@ -24,6 +24,12 @@ public:
 
   void add_user(std::shared_ptr<UserSocket> user);
 
+  void remove_user(std::shared_ptr<UserSocket> user);
+
+  std::string get_name();
+
+  size_t num_users();
+
 private:
   uint64_t id;
   std::string name;

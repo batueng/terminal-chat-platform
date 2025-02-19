@@ -66,6 +66,25 @@ void Session::add_user(std::shared_ptr<UserSocket> user) {
   users.insert(user);
 }
 
+void Session::remove_user(std::shared_ptr<UserSocket> user) {
+  boost::unique_lock<boost::shared_mutex> usr_lock(usr_mtx);
+
+  std::cout << "User removed from session " << name << ": " << user->get_name()
+            << std::endl;
+
+  available_colors.insert(user->get_color());
+
+  users.erase(user);
+}
+
+std::string Session::get_name() { return name; }
+
+size_t Session::num_users() {
+  boost::shared_lock<boost::shared_mutex> usr_lock(usr_mtx);
+
+  return users.size();
+}
+
 color Session::pick_color() {
   if (available_colors.empty())
     return static_cast<color>(dist(engine));

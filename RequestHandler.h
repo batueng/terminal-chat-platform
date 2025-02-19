@@ -6,6 +6,7 @@
 
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread/mutex.hpp>
+#include <fstream>
 #include <queue>
 #include <string>
 
@@ -23,10 +24,12 @@ public:
 
   color send_join(std::string &username, std::string &session_name);
 
-  void send_where(std::string &username, std::string &target_username);
+  std::string send_where(std::string &username, std::string &target_username);
 
   void send_message(std::string &username, std::string &session_name,
                     Message &msg);
+
+  void send_leave(std::string &username, std::string &session_name);
 
   friend class Client;
 
@@ -42,6 +45,8 @@ private:
   boost::condition_variable res_cv;
 
   std::queue<std::pair<tcp_hdr_t, std::string>> res_q;
+
+  std::ofstream of;
 };
 
 #endif

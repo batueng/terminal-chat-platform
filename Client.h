@@ -38,8 +38,9 @@ private:
   WINDOW *login_win;
 
   WINDOW *home_win;
-  // ncurses windows to manage messages and input space
+
   WINDOW *messages_win;
+
   WINDOW *input_win;
 
   std::string username;
@@ -47,10 +48,6 @@ private:
   color c;
 
   std::string curr_sess;
-
-  boost::mutex sess_mtx;
-
-  boost::condition_variable sess_cv;
 
   boost::mutex msg_mtx;
 

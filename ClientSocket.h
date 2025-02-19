@@ -35,9 +35,13 @@ private:
 
   // Close socket
   void cleanup();
+
   std::string ip;
+
   uint16_t port;
+
   int fd;
+
   struct sockaddr_in addr;
 };
 #endif // CLIENTSOCKET_H
