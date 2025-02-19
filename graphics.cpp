@@ -206,6 +206,21 @@ void print_header(WINDOW *win) {
     wrefresh(win);
 }
 
+void redraw_home_screen(WINDOW *home_win, int height, int width, int header_height, const std::string &username) {
+  werase(home_win);
+
+  std::string welcome_text = "Welcome, " + username + "!";
+  mvwprintw(home_win, 1, 1, "%s", welcome_text.c_str());
+
+  print_header(home_win);
+
+  WINDOW *help_win = derwin(home_win, height - header_height, width, header_height, 0);
+  display_help_screen(help_win);
+
+  wrefresh(home_win);
+  delwin(help_win);
+}
+
 void redraw_prompt(WINDOW *win, int height, int prompt_x, const std::string &uname) {
   mvwprintw(win, height - 1, 1, "Enter your username: ");
   wclrtoeol(win);

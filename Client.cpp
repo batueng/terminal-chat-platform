@@ -101,16 +101,99 @@ void Client::print_home_screen() {
   getmaxyx(stdscr, height, width);
 
   home_win = newwin(height, width, 0, 0);
-
-  std::string welcome_text = "Welcome, " + username + "!";
-  mvwprintw(home_win, 1, 1, welcome_text.c_str());
-  wrefresh(home_win);
-
-  print_header(home_win);
+  keypad(home_win, TRUE);
+  cbreak();
+  noecho();
+  curs_set(1);
 
   int header_height = 15;
-  WINDOW* help_win = derwin(home_win, height - header_height, width, header_height, 0);
-  display_help_screen(help_win);
+  redraw_home_screen(home_win, height, width, header_height, username);
+
+  int prompt_x = 3;
+  std::string line, command, arg;
+  int ch;
+
+  while (true) {
+    mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
+    wrefresh(home_win);
+
+    line.clear();
+
+    while (true) {
+      mvwprintw(home_win, height - 1, 1, "> ");
+      wclrtoeol(home_win);
+      mvwprintw(home_win, height - 1, prompt_x, "%s", line.c_str());
+      wmove(home_win, height - 1, prompt_x + static_cast<int>(line.size()));
+      wrefresh(home_win);
+
+      ch = wgetch(home_win);
+      if (ch == KEY_RESIZE) {
+        handle_resize(home_win, height, width);
+        redraw_home_screen(home_win, height, width, header_height, username);
+        mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
+        continue;
+      }
+      if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+        if (!line.empty())
+          line.pop_back();
+      } else if (ch == '\n') {
+        break;
+      } else if (ch >= 32 && ch <= 126) {
+        line.push_back(ch);
+      }
+    }
+
+    boost::trim(line);
+    if (line.empty())
+      continue;
+
+    std::istringstream stream(line);
+    stream >> command;
+
+    if (command == "join" || command == "create" || command == "where") {
+      std::string pattern = "^\\s*" + command + "\\s+" +
+        "[\\x20-\\x7E]{1," +
+        std::to_string(command == "where" ? MAX_USERNAME - 1 : MAX_SESSION_NAME - 1) +
+        "}$";
+      if (!boost::regex_match(line, boost::regex(pattern))) {
+        mvwprintw(home_win, height - 2, 1, "Error: Invalid command. See help for proper format.");
+        wclrtoeol(home_win);
+        wrefresh(home_win);
+        continue;
+      }
+      stream >> arg;
+      if (command == "join") {
+        c = req_handler.send_join(username, arg);
+        {
+          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
+          curr_sess = arg;
+          sess_cv.notify_all();
+        }
+        delwin(home_win);
+        print_session_screen();
+        return;
+      } else if (command == "create") {
+        c = req_handler.send_create(username, arg);
+        {
+          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
+          curr_sess = arg;
+          sess_cv.notify_all();
+        }
+        delwin(home_win);
+        print_session_screen();
+        return;
+      } else if (command == "where") {
+        req_handler.send_where(username, arg);
+      }
+    } else if (command == "help") {
+    } else if (command == "exit") {
+    } else {
+      mvwprintw(home_win, height - 2, 1, "Unknown command");
+      wclrtoeol(home_win);
+      wrefresh(home_win);
+    }
+  }
+  delwin(home_win);
 }
 
 void Client::msg_update_listener() {
@@ -281,82 +364,6 @@ void Client::run() {
   print_login_screen();
   print_home_screen();
 
-  std::string line, command;
-  while (true) {
-    int height, width;
-    getmaxyx(stdscr, height, width);
-
-    mvwprintw(home_win, height - 1, 1, "> ");
-    wrefresh(home_win);
-
-    echo();
-
-    char line_in[1024];
-    wgetnstr(home_win, line_in, 1024 - 1);
-
-    noecho();
-
-    line = std::string(line_in);
-
-    boost::trim(line);
-
-    std::istringstream stream(line);
-
-    stream >> command;
-    std::string pattern =
-        "^\\s*" + command + "\\s+" + "[\\x20-\\x7E]{1," +
-        std::to_string(command == "where" ? MAX_USERNAME - 1
-                                          : MAX_SESSION_NAME - 1) +
-        "}$";
-
-    if (command == "join" || command == "create" || command == "where") {
-      // valid pattern
-      if (!boost::regex_match(line, boost::regex(pattern))) {
-        mvwprintw(home_win, height - 2, 1, "Error: Invalid command. See help for proper format.");
-        wrefresh(home_win);
-        continue;
-      }
-
-      // get session_name/username argument
-      std::string arg;
-      stream >> arg;
-
-      // send join/create/where
-      if (command == "join") {
-        c = req_handler.send_join(username, arg);
-        {
-          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
-          curr_sess = arg;
-          sess_cv.notify_all();
-        }
-        delwin(home_win);
-        print_session_screen();
-
-      } else if (command == "create") {
-        c = req_handler.send_create(username, arg);
-        {
-          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
-          curr_sess = arg;
-          sess_cv.notify_all();
-        }
-        delwin(home_win);
-        print_session_screen();
-
-      } else if (command == "where") {
-        req_handler.send_where(username, arg);
-      }
-      // recv success
-      // set session_name/username
-
-    } else if (line == "help") {
-
-    } else if (line == "exit") {
-      mvwprintw(home_win, height - 2, 1, "Exiting application. Goodbye!");
-      break;
-    } else {
-      mvwprintw(home_win, height - 2, 1, "Unknown command");
-    }
-  }
   updt_listener.join();
   msg_listener.join();
 }
