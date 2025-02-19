@@ -10,8 +10,6 @@
 #include "graphics.h"
 #include "protocol.h"
 
-volatile sig_atomic_t Client::window_resized = 0;
-struct sigaction Client::sa;
 
 Client::Client(std::string &_server_ip, int _server_port, std::string debug_file)
     : req_handler(_server_ip, _server_port), fout(debug_file) {
@@ -27,21 +25,10 @@ Client::Client(std::string &_server_ip, int _server_port, std::string debug_file
        i < static_cast<uint8_t>(color::END); ++i) {
     init_pair(i, i, -1);
   }
-
-  // Installing SIGWINCH handler
-  sa.sa_handler = handle_winch;
-  sigemptyset(&sa.sa_mask);
-  sa.sa_flags = SA_RESTART;
-  sigaction(SIGWINCH, &sa, nullptr);
-}
+ }
 
 Client::~Client() {
   endwin();
-}
-
-void Client::handle_winch(int sig) {
-  window_resized = 1;
-  sigaction(SIGWINCH, &sa, nullptr);
 }
 
 void Client::print_login_screen() {
@@ -49,62 +36,65 @@ void Client::print_login_screen() {
   getmaxyx(stdscr, height, width);
 
   login_win = newwin(height, width, 0, 0);
+  keypad(login_win, TRUE);
   print_header(login_win);
   mvwprintw(login_win, height - 1, 1, "Enter your username: ");
   wrefresh(login_win);
 
-  echo();
+  cbreak();
+  noecho();
+  curs_set(1);
 
-  char username_in[MAX_USERNAME];
+  int prompt_x = 22;
+  std::string username;
+  int ch;
+  bool valid_username = false;
 
-  bool input_received = false;
-  while (!input_received) {
-    if (window_resized) {
-      window_resized = 0;  // Reset the flag
-      
-      endwin();
-      refresh();
+  while (!valid_username) {
+    username.clear();
+    redraw_prompt(login_win, height, prompt_x, username);
 
-      getmaxyx(stdscr, height, width);
+    while (true) {
+      ch = wgetch(login_win);
 
-      login_win = newwin(height, width, 0, 0);
-      print_header(login_win);
-      mvwprintw(login_win, height - 1, 1, "Enter your username: ");
+      if (ch == KEY_RESIZE) {
+        handle_resize(login_win, height, width);
+        print_header(login_win);
+        redraw_prompt(login_win, height, prompt_x, username);
+        continue;
+      }
+
+      if (ch == '\n')
+        break;
+      else if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+        if (!username.empty()) {
+          username.pop_back();
+          redraw_prompt(login_win, height, prompt_x, username);
+        }
+      }
+      else if (ch >= 32 && ch <= 126) {
+        username.push_back(ch);
+        redraw_prompt(login_win, height, prompt_x, username);
+      }
+    }
+
+    std::string err_msg;
+    if (req_handler.send_username(username, err_msg) == tcp_status::SUCCESS)
+      valid_username = true;
+    else {
+      mvwprintw(login_win, height - 2, 1, "%s", err_msg.c_str());
+      wclrtoeol(login_win);
       wrefresh(login_win);
+      wgetch(login_win);
+      mvwprintw(login_win, height - 2, 1, "%*s", width - 2, " ");
+      redraw_prompt(login_win, height, prompt_x, "");
     }
-
-    wgetnstr(login_win, username_in, MAX_USERNAME - 1);
-    input_received = true;
   }
 
-  username = std::string(username_in);
-
-  std::string err_msg;
-  while (req_handler.send_username(username, err_msg) != tcp_status::SUCCESS) {
-    if (window_resized) {
-      window_resized = 0;
-
-      endwin();
-      refresh();
-
-      getmaxyx(stdscr, height, width);
-
-      delwin(login_win);
-      login_win = newwin(height, width, 0, 0);
-    }
-
-    print_header(login_win);
-    mvwprintw(login_win, height - 2, 1, "%s", err_msg.c_str());
-    mvwprintw(login_win, height - 1, 1, "Enter your username: ");
-    wrefresh(login_win);
-
-    wgetnstr(login_win, username_in, MAX_USERNAME - 1);
-    username = std::string(username_in);
-  }
-
+  noecho();
+  curs_set(0);
   delwin(login_win);
 }
-
 
 void Client::print_home_screen() {
   int height, width;

@@ -205,3 +205,22 @@ void print_header(WINDOW *win) {
     // Refresh the window to display the header
     wrefresh(win);
 }
+
+void redraw_prompt(WINDOW *win, int height, int prompt_x, const std::string &uname) {
+  mvwprintw(win, height - 1, 1, "Enter your username: ");
+  wclrtoeol(win);
+  mvwprintw(win, height - 1, prompt_x, "%s", uname.c_str());
+  wmove(win, height - 1, prompt_x + static_cast<int>(uname.size()));
+  wrefresh(win);
+}
+
+void handle_resize(WINDOW *&win, int &height, int &width) {
+  clear();
+  refresh();
+  getmaxyx(stdscr, height, width);
+  if (win != nullptr) {
+    delwin(win);
+  }
+  win = newwin(height, width, 0, 0);
+  keypad(win, TRUE);
+}

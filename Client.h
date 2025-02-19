@@ -28,13 +28,6 @@ public:
 private:
   friend class RequestHandler;
 
-  // Flag to indicate window has been resized
-  static volatile sig_atomic_t window_resized;
-  static struct sigaction sa;
-
-  // Signal handler for window size
-  static void handle_winch(int sig);
-
   WINDOW *login_win;
 
   WINDOW *home_win;
