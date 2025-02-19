@@ -220,52 +220,69 @@ void Client::print_session_screen() {
   int height, width;
   getmaxyx(stdscr, height, width);
 
-  // Create the windows without borders.
   messages_win = newwin(height - 2, width, 0, 0);
-  input_win = newwin(2, width, height - 2, 0);
+  input_win    = newwin(2, width, height - 2, 0);
 
   scrollok(messages_win, TRUE);
 
   werase(messages_win);
   wrefresh(messages_win);
+
   werase(input_win);
   wrefresh(input_win);
 
-  // Print the session title centered on row 1.
-  std::string session_title = curr_sess;
   int msg_width = getmaxx(messages_win);
+
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
-  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s",
-            curr_sess.c_str());
+  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s", curr_sess.c_str());
   wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
   wrefresh(messages_win);
 
   std::string client_message;
+
   while (true) {
     werase(input_win);
-    mvwprintw(input_win, 1, 2, "> ");
-    wrefresh(input_win);
+    redraw_session_prompt(input_win, 4, "");
 
-    echo();
-    wmove(input_win, 1, 4);
-    char input_buffer[1024];
-    wgetnstr(input_win, input_buffer, sizeof(input_buffer) - 1);
-    client_message = std::string(input_buffer);
-    noecho();
+    std::string line;
+    int ch;
+    int prompt_x = 4;
+
+    while (true) {
+      redraw_session_prompt(input_win, prompt_x, line);
+
+      ch = wgetch(input_win);
+
+      if (ch == KEY_RESIZE) {
+        handle_session_resize(messages_win, input_win, height, width, 15, curr_sess);
+        print_messages();
+        continue;
+      }
+
+      if (ch == KEY_BACKSPACE || ch == 127 || ch == '\b') {
+        if (!line.empty())
+          line.pop_back();
+      } else if (ch == '\n') {
+        break;
+      } else if (ch >= 32 && ch <= 126) {
+        line.push_back(ch);
+      }
+    }
+
+    client_message = line;
 
     if (client_message == ":leave") {
       boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
       curr_sess.clear();
       sess_cv.notify_all();
       print_home_screen();
-
-      // Clean up the windows.
       delwin(messages_win);
       delwin(input_win);
       return;
     }
 
     Message msg = {message_type::CHAT, username, c, client_message};
+
     req_handler.send_message(username, curr_sess, msg);
     queue_chat(msg);
   }
