@@ -44,8 +44,9 @@ void RequestHandler::queue_res(tcp_hdr_t res_hdr, std::string msg) {
      << static_cast<int>(res_hdr.method) << " with msg " << msg << std::endl;
 }
 
-color RequestHandler::send_create(std::string &username,
-                                  std::string &session_name) {
+std::pair<color, tcp_status>
+RequestHandler::send_create(std::string &username, std::string &session_name,
+                            std::string &err_msg) {
 
   tcp_hdr_t create_hdr(tcp_method::CREATE, tcp_status::SUCCESS, color::DEFAULT,
                        0, username, session_name);
@@ -56,18 +57,17 @@ color RequestHandler::send_create(std::string &username,
   boost::unique_lock<boost::mutex> res_lock(res_mtx);
   res_cv.wait(res_lock, [&] { return !res_q.empty(); });
 
-  auto [res_hdr, err_msg] = res_q.front();
+  auto [res_hdr, data] = res_q.front();
   res_q.pop();
 
-  // print error if failed
-  if (res_hdr.status != tcp_status::SUCCESS)
-    std::cout << err_msg << std::endl;
+  err_msg = data;
 
-  return res_hdr.c;
+  return {res_hdr.c, res_hdr.status};
 }
 
-color RequestHandler::send_join(std::string &username,
-                                std::string &session_name) {
+std::pair<color, tcp_status>
+RequestHandler::send_join(std::string &username, std::string &session_name,
+                          std::string &err_msg) {
 
   tcp_hdr_t join_hdr(tcp_method::JOIN, tcp_status::SUCCESS, color::DEFAULT, 0,
                      username, session_name);
@@ -77,18 +77,15 @@ color RequestHandler::send_join(std::string &username,
   boost::unique_lock<boost::mutex> res_lock(res_mtx);
   res_cv.wait(res_lock, [&] { return !res_q.empty(); });
 
-  auto [res_hdr, err_msg] = res_q.front();
+  auto [res_hdr, data] = res_q.front();
   res_q.pop();
 
-  // print error if failed
-  if (res_hdr.status != tcp_status::SUCCESS)
-    std::cout << err_msg << std::endl;
-
-  return res_hdr.c;
+  return {res_hdr.c, res_hdr.status};
 }
 
-std::string RequestHandler::send_where(std::string &username,
-                                       std::string &target_username) {
+std::pair<std::string, tcp_status>
+RequestHandler::send_where(std::string &username, std::string &target_username,
+                           std::string &err_msg) {
 
   tcp_hdr_t where_hdr(tcp_method::WHERE, tcp_status::SUCCESS, color::DEFAULT,
                       target_username.size(), username, "");
@@ -96,28 +93,19 @@ std::string RequestHandler::send_where(std::string &username,
   if (!of.is_open()) {
     of.open(username + ".txt");
   }
-  of << username << " sending reqs for where" << std::endl;
   // send header
   client_sock.send_len(&where_hdr, sizeof(tcp_hdr_t));
   // send username as data
   client_sock.send_len(target_username.c_str(), target_username.size());
-  of << username << " sent reqs for where" << std::endl;
 
   boost::unique_lock<boost::mutex> res_lock(res_mtx);
-  of << username << " acquired locks where" << std::endl;
-  of << username << " waiting because queue size is " << res_q.size()
-     << std::endl;
   of.close();
   res_cv.wait(res_lock, [&] { return !res_q.empty(); });
 
   auto [res_hdr, data] = res_q.front();
   res_q.pop();
 
-  // print error if failed
-  if (res_hdr.status != tcp_status::SUCCESS)
-    std::cout << data << std::endl;
-
-  return data;
+  return {data, res_hdr.status};
 }
 
 void RequestHandler::send_message(std::string &username,

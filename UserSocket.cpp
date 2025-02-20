@@ -1,4 +1,5 @@
 #include "UserSocket.h"
+#include "errors.h"
 #include <unistd.h>
 
 void UserSocket::send_len(const void *buf, int n) {
@@ -22,7 +23,7 @@ std::string UserSocket::recv_len(int n) {
   while (tbr < n) {
     int r = recv(fd, &buf[tbr], n - tbr, 0);
     if (r <= 0) {
-      throw std::runtime_error("failed to send " + std::to_string(n) +
+      throw std::runtime_error("failed to recv " + std::to_string(n) +
                                " bytes");
     }
     tbr += r;
@@ -35,7 +36,21 @@ std::string UserSocket::get_name() { return name; }
 
 color UserSocket::get_color() { return c; }
 
-void UserSocket::set_name(std::string _name) { name = _name; }
+void UserSocket::set_name(std::string _name) {
+  if (!is_valid_name(_name)) {
+    throw InvalidUsername(_name);
+  }
+  name = _name;
+}
+
+bool UserSocket::is_valid_name(std::string _name) {
+  for (auto c : _name) {
+    if (c == ' ')
+      return false;
+  }
+
+  return _name.size();
+}
 
 void UserSocket::set_color(color _c) { c = _c; }
 

@@ -162,21 +162,25 @@ void Client::print_home_screen() {
       }
       stream >> arg;
       if (command == "join") {
-        c = req_handler.send_join(username, arg);
+        std::string err_msg;
+        auto [c, status] = req_handler.send_join(username, arg, err_msg);
         curr_sess = arg;
 
         delwin(home_win);
         print_session_screen();
         return;
       } else if (command == "create") {
-        c = req_handler.send_create(username, arg);
+        std::string err_msg;
+        auto [c, status] = req_handler.send_create(username, arg, err_msg);
         curr_sess = arg;
 
         delwin(home_win);
         print_session_screen();
         return;
       } else if (command == "where") {
-        req_handler.send_where(username, arg);
+        std::string err_msg;
+        auto [user_loc, status] =
+            req_handler.send_where(username, arg, err_msg);
       }
     } else if (command == "help") {
     } else if (command == "exit") {

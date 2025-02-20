@@ -9,8 +9,7 @@
 
 class TCPError : public std::runtime_error {
 public:
-  explicit TCPError(std::string msg, tcp_status _status)
-      : std::runtime_error(msg) {
+  TCPError(std::string msg, tcp_status _status) : std::runtime_error(msg) {
     status = _status;
   }
 
@@ -24,7 +23,7 @@ protected:
 
 class DuplicateObjectError : public TCPError {
 public:
-  explicit DuplicateObjectError(std::string key, tcp_status _status)
+  DuplicateObjectError(std::string key, tcp_status _status)
       : TCPError(key + " already exists.", _status) {}
 };
 
@@ -44,7 +43,7 @@ public:
 
 class NotFoundError : public TCPError {
 public:
-  explicit NotFoundError(std::string key, tcp_status _status)
+  NotFoundError(std::string key, tcp_status _status)
       : TCPError(key + " not found.", _status) {}
 };
 
@@ -58,6 +57,26 @@ class UserNotFound : public NotFoundError {
 public:
   explicit UserNotFound(std::string user_name)
       : NotFoundError(user_name, tcp_status::USER_NOT_FOUND) {}
+};
+
+// ============================ Invalid Name Classes ===========================
+
+class InvalidUsername : public TCPError {
+public:
+  explicit InvalidUsername(std::string username)
+      : TCPError(
+            "Username: " + username +
+                " is invalid. Must have length > 0 and contain no whitespace.",
+            tcp_status::INVALID_UNAME) {}
+};
+
+class InvalidSessionName : public TCPError {
+public:
+  explicit InvalidSessionName(std::string session_name)
+      : TCPError("Session name: " + session_name +
+                     " is invalid. Must have length > 0 and contain no "
+                     "whitespace.",
+                 tcp_status::INVALID_SESS_NAME) {}
 };
 
 #endif

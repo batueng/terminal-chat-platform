@@ -35,7 +35,7 @@ void MessageServer::handle_client(int client_fd) {
 
       switch (tcp_hdr->method) {
       case tcp_method::U_NAME: {
-        user_sock.set_name(username);
+        user_sock.set_name(username); // can throw InvalidUsername
 
         std::shared_ptr<UserSocket> user_ptr =
             std::make_shared<UserSocket>(std::move(user_sock));
@@ -77,6 +77,10 @@ void MessageServer::handle_client(int client_fd) {
         break;
       }
       case tcp_method::CREATE: {
+        if (!UserSocket::is_valid_name(sess_name)) {
+          throw InvalidSessionName(sess_name);
+        }
+
         std::shared_ptr<Session> sess = sessions.emplace<DuplicateSession>(
             sess_name, std::make_shared<Session>(sess_name));
 
@@ -130,8 +134,8 @@ void MessageServer::handle_client(int client_fd) {
       }
     } catch (TCPError &e) {
       res_handler.send_err_res(user_sock, e);
-    } catch (std::exception &e) {
-      std::cout << e.what() << std::endl;
+      // } catch (std::exception &e) {
+      //   std::cout << e.what() << std::endl;
     }
   }
 }

@@ -20,11 +20,17 @@ public:
 
   tcp_status send_username(std::string username, std::string &err_msg);
 
-  color send_create(std::string &username, std::string &session_name);
+  std::pair<color, tcp_status> send_create(std::string &username,
+                                           std::string &session_name,
+                                           std::string &err_msg);
 
-  color send_join(std::string &username, std::string &session_name);
+  std::pair<color, tcp_status> send_join(std::string &username,
+                                         std::string &session_name,
+                                         std::string &err_msg);
 
-  std::string send_where(std::string &username, std::string &target_username);
+  std::pair<std::string, tcp_status> send_where(std::string &username,
+                                                std::string &target_username,
+                                                std::string &err_msg);
 
   void send_message(std::string &username, std::string &session_name,
                     Message &msg);

@@ -56,6 +56,8 @@ enum class tcp_status {
   SESSION_NOT_FOUND = 302,
   DUP_USER = 401,
   DUP_SESS = 402,
+  INVALID_UNAME = 303,
+  INVALID_SESS_NAME = 304
 };
 
 /* tcp_hdr_t: The header of a tcp request or response

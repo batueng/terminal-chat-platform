@@ -20,7 +20,9 @@ public:
 
   color get_color();
 
-  void set_name(std::string);
+  void set_name(std::string _name);
+
+  static bool is_valid_name(std::string _name);
 
   void set_color(color _c);
 
