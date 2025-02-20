@@ -1,17 +1,17 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
-#include <ncurses.h>
 #include <csignal>
+#include <fstream>
+#include <ncurses.h>
 #include <sstream>
 #include <unistd.h>
-#include <fstream>
 
 #include "Client.h"
 #include "graphics.h"
 #include "protocol.h"
 
-
-Client::Client(std::string &_server_ip, int _server_port, std::string debug_file)
+Client::Client(std::string &_server_ip, int _server_port,
+               std::string debug_file)
     : req_handler(_server_ip, _server_port), fout(debug_file) {
   initscr();
   use_default_colors();
@@ -25,11 +25,9 @@ Client::Client(std::string &_server_ip, int _server_port, std::string debug_file
        i < static_cast<uint8_t>(color::END); ++i) {
     init_pair(i, i, -1);
   }
- }
-
-Client::~Client() {
-  endwin();
 }
+
+Client::~Client() { endwin(); }
 
 void Client::print_login_screen() {
   int height, width;
@@ -71,8 +69,7 @@ void Client::print_login_screen() {
           username.pop_back();
           redraw_prompt(login_win, height, prompt_x, username);
         }
-      }
-      else if (ch >= 32 && ch <= 126) {
+      } else if (ch >= 32 && ch <= 126) {
         username.push_back(ch);
         redraw_prompt(login_win, height, prompt_x, username);
       }
@@ -151,12 +148,14 @@ void Client::print_home_screen() {
     stream >> command;
 
     if (command == "join" || command == "create" || command == "where") {
-      std::string pattern = "^\\s*" + command + "\\s+" +
-        "[\\x20-\\x7E]{1," +
-        std::to_string(command == "where" ? MAX_USERNAME - 1 : MAX_SESSION_NAME - 1) +
-        "}$";
+      std::string pattern =
+          "^\\s*" + command + "\\s+" + "[\\x20-\\x7E]{1," +
+          std::to_string(command == "where" ? MAX_USERNAME - 1
+                                            : MAX_SESSION_NAME - 1) +
+          "}$";
       if (!boost::regex_match(line, boost::regex(pattern))) {
-        mvwprintw(home_win, height - 2, 1, "Error: Invalid command. See help for proper format.");
+        mvwprintw(home_win, height - 2, 1,
+                  "Error: Invalid command. See help for proper format.");
         wclrtoeol(home_win);
         wrefresh(home_win);
         continue;
@@ -164,21 +163,15 @@ void Client::print_home_screen() {
       stream >> arg;
       if (command == "join") {
         c = req_handler.send_join(username, arg);
-        {
-          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
-          curr_sess = arg;
-          sess_cv.notify_all();
-        }
+        curr_sess = arg;
+
         delwin(home_win);
         print_session_screen();
         return;
       } else if (command == "create") {
         c = req_handler.send_create(username, arg);
-        {
-          boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
-          curr_sess = arg;
-          sess_cv.notify_all();
-        }
+        curr_sess = arg;
+
         delwin(home_win);
         print_session_screen();
         return;
@@ -221,7 +214,7 @@ void Client::print_session_screen() {
   getmaxyx(stdscr, height, width);
 
   messages_win = newwin(height - 2, width, 0, 0);
-  input_win    = newwin(2, width, height - 2, 0);
+  input_win = newwin(2, width, height - 2, 0);
 
   scrollok(messages_win, TRUE);
 
@@ -234,7 +227,8 @@ void Client::print_session_screen() {
   int msg_width = getmaxx(messages_win);
 
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
-  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s", curr_sess.c_str());
+  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s",
+            curr_sess.c_str());
   wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
   wrefresh(messages_win);
 
@@ -254,7 +248,8 @@ void Client::print_session_screen() {
       ch = wgetch(input_win);
 
       if (ch == KEY_RESIZE) {
-        handle_session_resize(messages_win, input_win, height, width, 15, curr_sess);
+        handle_session_resize(messages_win, input_win, height, width, 15,
+                              curr_sess);
         print_messages();
         continue;
       }
@@ -272,9 +267,7 @@ void Client::print_session_screen() {
     client_message = line;
 
     if (client_message == ":leave") {
-      boost::unique_lock<boost::mutex> sess_lock(sess_mtx);
       curr_sess.clear();
-      sess_cv.notify_all();
       print_home_screen();
       delwin(messages_win);
       delwin(input_win);

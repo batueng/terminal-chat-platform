@@ -10,12 +10,12 @@
 #include <cstddef>
 #include <cstdlib>
 #include <deque>
+#include <fstream>
 #include <ncurses.h>
 #include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
-#include <fstream>
 
 class Client {
 public:
@@ -40,10 +40,6 @@ private:
   color c;
 
   std::string curr_sess;
-
-  boost::mutex sess_mtx;
-
-  boost::condition_variable sess_cv;
 
   boost::mutex msg_mtx;
 
