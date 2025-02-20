@@ -205,3 +205,81 @@ void print_header(WINDOW *win) {
     // Refresh the window to display the header
     wrefresh(win);
 }
+
+void redraw_home_screen(WINDOW *home_win, int height, int width, int header_height, const std::string &username) {
+  werase(home_win);
+
+  std::string welcome_text = "Welcome, " + username + "!";
+  mvwprintw(home_win, 1, 1, "%s", welcome_text.c_str());
+
+  print_header(home_win);
+
+  WINDOW *help_win = derwin(home_win, height - header_height, width, header_height, 0);
+  display_help_screen(help_win);
+
+  wrefresh(home_win);
+  delwin(help_win);
+}
+
+void handle_session_resize(WINDOW *&messages_win, WINDOW *&input_win,
+                           int &height, int &width, int header_height,
+                           const std::string &curr_sess) {
+  clear();
+  refresh();
+  getmaxyx(stdscr, height, width);
+
+  if (messages_win) {
+    delwin(messages_win);
+  }
+  if (input_win) {
+    delwin(input_win);
+  }
+
+  messages_win = newwin(height - 2, width, 0, 0);
+  input_win    = newwin(2, width, height - 2, 0);
+
+  keypad(messages_win, TRUE);
+  keypad(input_win, TRUE);
+
+  scrollok(messages_win, TRUE);
+
+  werase(messages_win);
+  wrefresh(messages_win);
+
+  werase(input_win);
+  wrefresh(input_win);
+
+  int msg_width = getmaxx(messages_win);
+
+  wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
+  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s", curr_sess.c_str());
+  wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
+  wrefresh(messages_win);
+}
+
+void redraw_prompt(WINDOW *win, int height, int prompt_x, const std::string &uname) {
+  mvwprintw(win, height - 1, 1, "Enter your username: ");
+  wclrtoeol(win);
+  mvwprintw(win, height - 1, prompt_x, "%s", uname.c_str());
+  wmove(win, height - 1, prompt_x + static_cast<int>(uname.size()));
+  wrefresh(win);
+}
+
+void redraw_session_prompt(WINDOW *input_win, int prompt_x, const std::string &line) {
+  mvwprintw(input_win, 1, 2, "> ");
+  wclrtoeol(input_win);
+  mvwprintw(input_win, 1, prompt_x, "%s", line.c_str());
+  wmove(input_win, 1, prompt_x + static_cast<int>(line.size()));
+  wrefresh(input_win);
+}
+
+void handle_resize(WINDOW *&win, int &height, int &width) {
+  clear();
+  refresh();
+  getmaxyx(stdscr, height, width);
+  if (win != nullptr) {
+    delwin(win);
+  }
+  win = newwin(height, width, 0, 0);
+  keypad(win, TRUE);
+}
