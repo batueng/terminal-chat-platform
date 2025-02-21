@@ -44,7 +44,6 @@ void Client::print_login_screen() {
   curs_set(1);
 
   int prompt_x = 22;
-  std::string username;
   int ch;
   bool valid_username = false;
 
@@ -163,7 +162,8 @@ void Client::print_home_screen() {
       stream >> arg;
       if (command == "join") {
         std::string err_msg;
-        auto [c, status] = req_handler.send_join(username, arg, err_msg);
+        auto [_c, status] = req_handler.send_join(username, arg, err_msg);
+        c = _c;
         curr_sess = arg;
 
         delwin(home_win);
@@ -171,7 +171,8 @@ void Client::print_home_screen() {
         return;
       } else if (command == "create") {
         std::string err_msg;
-        auto [c, status] = req_handler.send_create(username, arg, err_msg);
+        auto [_c, status] = req_handler.send_create(username, arg, err_msg);
+        c = _c;
         curr_sess = arg;
 
         delwin(home_win);
@@ -380,84 +381,6 @@ void Client::run() {
   print_login_screen();
   print_home_screen();
 
-  std::string line, command;
-  while (true) {
-    int height, width;
-    getmaxyx(stdscr, height, width);
-
-    mvwprintw(home_win, height - 1, 1, "> ");
-    wrefresh(home_win);
-
-    echo();
-
-    char line_in[1024];
-    wgetnstr(home_win, line_in, 1024 - 1);
-
-    noecho();
-
-    line = std::string(line_in);
-
-    boost::trim(line);
-
-    std::istringstream stream(line);
-
-    stream >> command;
-    std::string pattern =
-        "^\\s*" + command + "\\s+" + "[\\x20-\\x7E]{1," +
-        std::to_string(command == "where" ? MAX_USERNAME - 1
-                                          : MAX_SESSION_NAME - 1) +
-        "}$";
-
-    if (command == "join" || command == "create" || command == "where") {
-      // valid pattern
-      if (!boost::regex_match(line, boost::regex(pattern))) {
-        mvwprintw(home_win, height - 2, 1,
-                  "Error: Invalid command. See help for proper format.");
-        wrefresh(home_win);
-        continue;
-      }
-
-      // get session_name/username argument
-      std::string arg;
-      stream >> arg;
-
-      // send join/create/where
-      if (command == "join") {
-        c = req_handler.send_join(username, arg);
-        curr_sess = arg;
-
-        delwin(home_win);
-        print_session_screen();
-
-      } else if (command == "create") {
-        c = req_handler.send_create(username, arg);
-        curr_sess = arg;
-
-        delwin(home_win);
-        print_session_screen();
-
-      } else if (command == "where") {
-        std::string user_loc = req_handler.send_where(username, arg);
-
-        std::string where_msg = "User " + arg + " is in session: " + user_loc;
-        mvwprintw(home_win, height - 2, 1, where_msg.c_str());
-        wmove(home_win, height - 1, 1);
-        wclrtoeol(home_win);
-        wrefresh(home_win);
-      }
-
-    } else if (line == "help") {
-      print_home_screen();
-    } else if (line == "exit") {
-      mvwprintw(home_win, height - 2, 1, "Exiting application. Goodbye!");
-      break;
-    } else {
-      mvwprintw(home_win, height - 2, 1, "Unknown command");
-      wmove(home_win, height - 1, 1);
-      wclrtoeol(home_win);
-      wrefresh(home_win);
-    }
-  }
   updt_listener.join();
   msg_listener.join();
 }
