@@ -163,25 +163,47 @@ void Client::print_home_screen() {
       if (command == "join") {
         std::string err_msg;
         auto [_c, status] = req_handler.send_join(username, arg, err_msg);
-        c = _c;
-        curr_sess = arg;
+        if (status != tcp_status::SUCCESS) {
+          mvwprintw(home_win, height - 2, 1,
+                    err_msg.c_str());
+          wrefresh(home_win);
+        } else {
+          c = _c;
+          curr_sess = arg;
 
-        delwin(home_win);
-        print_session_screen();
+          delwin(home_win);
+          print_session_screen();
+        }
         return;
       } else if (command == "create") {
         std::string err_msg;
         auto [_c, status] = req_handler.send_create(username, arg, err_msg);
-        c = _c;
-        curr_sess = arg;
+        if (status != tcp_status::SUCCESS) {
+          mvwprintw(home_win, height - 2, 1,
+                    err_msg.c_str());
+          wrefresh(home_win);
+        } else {
+          c = _c;
+          curr_sess = arg;
 
-        delwin(home_win);
-        print_session_screen();
+          delwin(home_win);
+          print_session_screen();
+        }
         return;
       } else if (command == "where") {
         std::string err_msg;
         auto [user_loc, status] =
             req_handler.send_where(username, arg, err_msg);
+        if (status != tcp_status::SUCCESS) {
+          mvwprintw(home_win, height - 2, 1,
+                    err_msg.c_str());
+          wrefresh(home_win);   
+        } else {
+          std::string user_location = "The user is at session " + user_loc;
+          mvwprintw(home_win, height - 2, 1,
+                    user_location.c_str());
+          wrefresh(home_win);
+        }
       }
     } else if (command == "help") {
     } else if (command == "exit") {
