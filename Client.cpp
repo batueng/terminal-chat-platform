@@ -5,6 +5,7 @@
 #include <ncurses.h>
 #include <sstream>
 #include <unistd.h>
+#include <iostream>
 
 #include "Client.h"
 #include "graphics.h"
@@ -172,6 +173,8 @@ void Client::print_home_screen() {
           curr_sess = arg;
 
           delwin(home_win);
+          clear();
+          refresh();
           print_session_screen();
         }
         return;
@@ -187,6 +190,8 @@ void Client::print_home_screen() {
           curr_sess = arg;
 
           delwin(home_win);
+          clear();
+          refresh();
           print_session_screen();
         }
         return;
@@ -254,8 +259,13 @@ void Client::print_session_screen() {
   int msg_width = getmaxx(messages_win);
 
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
-  mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s",
-            curr_sess.c_str());
+  
+  int start_col = 0;
+  if (msg_width > static_cast<int>(curr_sess.size())) {
+    start_col = (msg_width - curr_sess.size()) / 2;
+  }
+  mvwprintw(messages_win, 1, start_col, "%s", curr_sess.c_str());
+
   wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
   wrefresh(messages_win);
 
