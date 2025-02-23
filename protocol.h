@@ -47,7 +47,8 @@ enum class tcp_method : uint16_t {
   CREATE = 0x03,
   MESSAGE = 0x04,
   LEAVE = 0x05,
-  ERROR = 0x06
+  U_SHUTDOWN = 0x06,
+  ERROR = 0x07
 };
 
 enum class tcp_status {

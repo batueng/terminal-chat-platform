@@ -128,6 +128,27 @@ void MessageServer::handle_client(int client_fd) {
 
         break;
       }
+      case tcp_method::U_SHUTDOWN: {
+        user_sessions.erase(username);
+
+        try {
+          std::shared_ptr<Session> sess =
+              sessions.find<SessionNotFound>(sess_name);
+
+          std::shared_ptr<UserSocket> user_ptr =
+              users.find<UserNotFound>(username);
+
+          sess->remove_user(user_ptr);
+
+          if (sess->num_users() == 0) {
+            sessions.erase(sess_name);
+          }
+        } catch (...) {}
+
+        users.erase(username);
+
+        return;
+      }
 
       default:
         break;

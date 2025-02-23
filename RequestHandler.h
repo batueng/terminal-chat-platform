@@ -37,6 +37,8 @@ public:
 
   void send_leave(std::string &username, std::string &session_name);
 
+  void send_shutdown(std::string &username, std::string &session_name);
+
   friend class Client;
 
 private:
