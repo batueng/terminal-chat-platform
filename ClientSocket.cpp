@@ -78,10 +78,7 @@ std::string ClientSocket::recv_len(int n) {
   while (tbr < n) {
     int r = recv(fd, &buf[tbr], n - tbr, 0);
     if (r <= 0) {
-      std::cerr << "recv failed: errno=" << errno
-                << ", message=" << strerror(errno) << std::endl;
-      throw std::runtime_error("failed to recv " + std::to_string(n) +
-                               " bytes " + strerror(errno));
+      break;
     }
     tbr += r;
   }

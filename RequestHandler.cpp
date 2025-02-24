@@ -136,12 +136,10 @@ void RequestHandler::send_leave(std::string &username,
     std::cout << err_msg << std::endl;
 }
 
-void RequestHandler::send_shutdown(std::string &username,
-                                   std::string &session_name) {
+void RequestHandler::send_shutdown(std::string &username) {
 
   tcp_hdr_t shutdown_hdr(tcp_method::U_SHUTDOWN, tcp_status::SUCCESS, color::DEFAULT, 0,
-                         username, session_name);
+                         username, "");
 
   client_sock.send_len(&shutdown_hdr, sizeof(tcp_hdr_t));
-  close(client_sock.fd);
 }

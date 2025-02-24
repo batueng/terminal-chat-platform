@@ -44,8 +44,19 @@ void Client::handle_signal(int signum) {
 
 void Client::on_signal(int signum) {
   g_running = false;
-  req_handler.send_shutdown(username, curr_sess);  
+
+  if (curr_sess != "") {
+    req_handler.send_leave(username, curr_sess);
+  }
+  req_handler.send_shutdown(username);  
+
   msg_cv.notify_all();
+
+  int fd = req_handler.client_sock.fd;
+  if (fd != -1) {
+    close(fd);
+  }
+
   ungetch('\n');
 }
 

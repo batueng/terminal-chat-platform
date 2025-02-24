@@ -26,7 +26,7 @@ public:
 
   std::string recv_len(int n);
   
-  friend class RequestHandler;
+  friend class Client;
 private:
   // Setup socket
   void setup();
