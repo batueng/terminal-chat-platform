@@ -143,4 +143,5 @@ void RequestHandler::send_shutdown(std::string &username,
                          username, session_name);
 
   client_sock.send_len(&shutdown_hdr, sizeof(tcp_hdr_t));
+  close(client_sock.fd);
 }

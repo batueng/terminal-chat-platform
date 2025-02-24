@@ -129,6 +129,7 @@ void MessageServer::handle_client(int client_fd) {
         break;
       }
       case tcp_method::U_SHUTDOWN: {
+        std::cout << "got shut-down signal for user " << username << std::endl;
         user_sessions.erase(username);
 
         try {

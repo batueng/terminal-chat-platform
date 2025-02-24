@@ -33,7 +33,6 @@ Client::Client(std::string &_server_ip, int _server_port,
 }
 
 Client::~Client() {
-  req_handler.send_shutdown(username, curr_sess);  
   endwin();
 }
 
@@ -45,6 +44,7 @@ void Client::handle_signal(int signum) {
 
 void Client::on_signal(int signum) {
   g_running = false;
+  req_handler.send_shutdown(username, curr_sess);  
   msg_cv.notify_all();
   ungetch('\n');
 }

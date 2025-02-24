@@ -25,7 +25,8 @@ public:
   void send_len(const void *buf, int n);
 
   std::string recv_len(int n);
-
+  
+  friend class RequestHandler;
 private:
   // Setup socket
   void setup();
