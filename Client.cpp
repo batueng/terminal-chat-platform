@@ -5,11 +5,15 @@
 #include <ncurses.h>
 #include <sstream>
 #include <unistd.h>
-#include <iostream>
+#include <csignal>
+#include <atomic>
 
 #include "Client.h"
 #include "graphics.h"
 #include "protocol.h"
+
+std::atomic<bool> g_running{true};
+Client* Client::instance = nullptr;
 
 Client::Client(std::string &_server_ip, int _server_port,
                std::string debug_file)
@@ -28,7 +32,22 @@ Client::Client(std::string &_server_ip, int _server_port,
   }
 }
 
-Client::~Client() { endwin(); }
+Client::~Client() {
+  req_handler.send_shutdown(username, curr_sess);  
+  endwin();
+}
+
+void Client::handle_signal(int signum) {
+    if (instance) {
+      instance->on_signal(signum);
+    }
+  }
+
+void Client::on_signal(int signum) {
+  g_running = false;
+  msg_cv.notify_all();
+  ungetch('\n');
+}
 
 void Client::print_login_screen() {
   int height, width;
@@ -48,11 +67,11 @@ void Client::print_login_screen() {
   int ch;
   bool valid_username = false;
 
-  while (!valid_username) {
+  while (g_running && !valid_username) {
     username.clear();
     redraw_prompt(login_win, height, prompt_x, username);
 
-    while (true) {
+    while (g_running) {
       ch = wgetch(login_win);
 
       if (ch == KEY_RESIZE) {
@@ -74,6 +93,8 @@ void Client::print_login_screen() {
         redraw_prompt(login_win, height, prompt_x, username);
       }
     }
+    
+    if (!g_running) break;
 
     std::string err_msg;
     if (req_handler.send_username(username, err_msg) == tcp_status::SUCCESS)
@@ -110,13 +131,13 @@ void Client::print_home_screen() {
   std::string line, command, arg;
   int ch;
 
-  while (true) {
+  while (g_running) {
     mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
     wrefresh(home_win);
 
     line.clear();
 
-    while (true) {
+    while (g_running) {
       mvwprintw(home_win, height - 1, 1, "> ");
       wclrtoeol(home_win);
       mvwprintw(home_win, height - 1, prompt_x, "%s", line.c_str());
@@ -139,6 +160,8 @@ void Client::print_home_screen() {
         line.push_back(ch);
       }
     }
+    
+    if (!g_running) break;
 
     boost::trim(line);
     if (line.empty())
@@ -222,10 +245,10 @@ void Client::print_home_screen() {
 }
 
 void Client::msg_update_listener() {
-  while (true) {
+  while (g_running) {
     boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
 
-    while (!update_msgs) {
+    while (g_running && !update_msgs) {
       msg_cv.wait(msg_lock);
     }
 
@@ -271,7 +294,7 @@ void Client::print_session_screen() {
 
   std::string client_message;
 
-  while (true) {
+  while (g_running) {
     werase(input_win);
     redraw_session_prompt(input_win, 4, "");
 
@@ -279,7 +302,7 @@ void Client::print_session_screen() {
     int ch;
     int prompt_x = 4;
 
-    while (true) {
+    while (g_running) {
       redraw_session_prompt(input_win, prompt_x, line);
 
       ch = wgetch(input_win);
@@ -321,7 +344,7 @@ void Client::print_session_screen() {
 }
 
 void Client::message_listener() {
-  while (true) {
+  while (g_running) {
     std::string res_hdr_str =
         req_handler.client_sock.recv_len(sizeof(tcp_hdr_t));
     tcp_hdr_t *res_hdr = reinterpret_cast<tcp_hdr_t *>(res_hdr_str.data());
@@ -418,9 +441,14 @@ void Client::run() {
 }
 
 int main(int argc, char *argv[]) {
+
   std::string server_ip = "127.0.0.1";
   int server_port = 8080;
   Client c(server_ip, server_port, "out.txt");
+
+  Client::instance = &c;
+  std::signal(SIGINT, Client::handle_signal);
+
   c.run();
   return 0;
 }

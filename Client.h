@@ -25,6 +25,10 @@ public:
 
   void run();
 
+  static void handle_signal(int signum);
+
+  static Client* instance;
+
 private:
   friend class RequestHandler;
 
@@ -70,6 +74,8 @@ private:
   void message_listener();
 
   void queue_chat(Message msg);
+
+  void on_signal(int signum);
 };
 
 #endif
