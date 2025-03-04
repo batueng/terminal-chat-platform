@@ -1,19 +1,19 @@
+#include <atomic>
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 #include <csignal>
 #include <fstream>
+#include <iostream>
 #include <ncurses.h>
 #include <sstream>
 #include <unistd.h>
-#include <csignal>
-#include <atomic>
 
 #include "Client.h"
 #include "graphics.h"
 #include "protocol.h"
 
 std::atomic<bool> g_running{true};
-Client* Client::instance = nullptr;
+Client *Client::instance = nullptr;
 
 Client::Client(std::string &_server_ip, int _server_port,
                std::string debug_file)
@@ -32,23 +32,22 @@ Client::Client(std::string &_server_ip, int _server_port,
   }
 }
 
-Client::~Client() {
-  endwin();
-}
+Client::~Client() { endwin(); }
 
 void Client::handle_signal(int signum) {
-    if (instance) {
-      instance->on_signal(signum);
-    }
+  if (instance) {
+    instance->on_signal(signum);
   }
+}
 
 void Client::on_signal(int signum) {
   g_running = false;
 
+  boost::unique_lock<boost::mutex> lock(sess_mtx);
   if (curr_sess != "") {
     req_handler.send_leave(username, curr_sess);
   }
-  req_handler.send_shutdown(username);  
+  req_handler.send_shutdown(username);
 
   msg_cv.notify_all();
 
@@ -104,8 +103,9 @@ void Client::print_login_screen() {
         redraw_prompt(login_win, height, prompt_x, username);
       }
     }
-    
-    if (!g_running) break;
+
+    if (!g_running)
+      break;
 
     std::string err_msg;
     if (req_handler.send_username(username, err_msg) == tcp_status::SUCCESS)
@@ -150,7 +150,9 @@ void Client::print_home_screen() {
 
     while (g_running) {
       mvwprintw(home_win, height - 1, 1, "> ");
+      wmove(home_win, height - 1, prompt_x);
       wclrtoeol(home_win);
+      wrefresh(home_win);
       mvwprintw(home_win, height - 1, prompt_x, "%s", line.c_str());
       wmove(home_win, height - 1, prompt_x + static_cast<int>(line.size()));
       wrefresh(home_win);
@@ -171,8 +173,9 @@ void Client::print_home_screen() {
         line.push_back(ch);
       }
     }
-    
-    if (!g_running) break;
+
+    if (!g_running)
+      break;
 
     boost::trim(line);
     if (line.empty())
@@ -190,7 +193,6 @@ void Client::print_home_screen() {
       if (!boost::regex_match(line, boost::regex(pattern))) {
         mvwprintw(home_win, height - 2, 1,
                   "Error: Invalid command. See help for proper format.");
-        wclrtoeol(home_win);
         wrefresh(home_win);
         continue;
       }
@@ -199,48 +201,50 @@ void Client::print_home_screen() {
         std::string err_msg;
         auto [_c, status] = req_handler.send_join(username, arg, err_msg);
         if (status != tcp_status::SUCCESS) {
-          mvwprintw(home_win, height - 2, 1,
-                    err_msg.c_str());
+          mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
+          mvwprintw(home_win, height - 2, 1, err_msg.c_str());
           wrefresh(home_win);
         } else {
-          c = _c;
-          curr_sess = arg;
+          {
+            boost::unique_lock<boost::mutex> lock(sess_mtx);
+            c = _c;
+            curr_sess = arg;
+          }
 
           delwin(home_win);
           clear();
           refresh();
           print_session_screen();
         }
-        return;
       } else if (command == "create") {
         std::string err_msg;
         auto [_c, status] = req_handler.send_create(username, arg, err_msg);
         if (status != tcp_status::SUCCESS) {
-          mvwprintw(home_win, height - 2, 1,
-                    err_msg.c_str());
+          mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
+          mvwprintw(home_win, height - 2, 1, err_msg.c_str());
           wrefresh(home_win);
         } else {
-          c = _c;
-          curr_sess = arg;
+          {
+            boost::unique_lock<boost::mutex> lock(sess_mtx);
+            c = _c;
+            curr_sess = arg;
+            fout << curr_sess << std::endl;
+          }
 
           delwin(home_win);
           clear();
           refresh();
           print_session_screen();
         }
-        return;
       } else if (command == "where") {
         std::string err_msg;
         auto [user_loc, status] =
             req_handler.send_where(username, arg, err_msg);
         if (status != tcp_status::SUCCESS) {
-          mvwprintw(home_win, height - 2, 1,
-                    err_msg.c_str());
-          wrefresh(home_win);   
+
         } else {
           std::string user_location = "The user is at session " + user_loc;
-          mvwprintw(home_win, height - 2, 1,
-                    user_location.c_str());
+          mvwprintw(home_win, height - 2, 1, user_location.c_str());
           wrefresh(home_win);
         }
       }
@@ -248,7 +252,6 @@ void Client::print_home_screen() {
     } else if (command == "exit") {
     } else {
       mvwprintw(home_win, height - 2, 1, "Unknown command");
-      wclrtoeol(home_win);
       wrefresh(home_win);
     }
   }
@@ -293,7 +296,7 @@ void Client::print_session_screen() {
   int msg_width = getmaxx(messages_win);
 
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
-  
+
   int start_col = 0;
   if (msg_width > static_cast<int>(curr_sess.size())) {
     start_col = (msg_width - curr_sess.size()) / 2;

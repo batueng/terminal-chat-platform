@@ -5,7 +5,6 @@
 #include "protocol.h"
 
 #include <boost/thread.hpp>
-#include <exception>
 #include <iostream>
 #include <string>
 
@@ -24,6 +23,8 @@ void MessageServer::run() {
 
 void MessageServer::handle_client(int client_fd) {
   UserSocket user_sock(client_fd);
+  std::shared_ptr<UserSocket> user_ptr =
+      std::make_shared<UserSocket>(std::move(user_sock));
   while (true) {
     try {
       std::string buf = user_sock.recv_len(sizeof(tcp_hdr_t));
@@ -37,10 +38,8 @@ void MessageServer::handle_client(int client_fd) {
       case tcp_method::U_NAME: {
         user_sock.set_name(username); // can throw InvalidUsername
 
-        std::shared_ptr<UserSocket> user_ptr =
-            std::make_shared<UserSocket>(std::move(user_sock));
-
-        users.emplace<DuplicateUser>(username, user_ptr);
+        users.emplace<DuplicateUser>(username,
+                                     user_ptr); // this error handling fails
 
         std::cout << "user inserted: " << username << std::endl;
 
@@ -63,8 +62,7 @@ void MessageServer::handle_client(int client_fd) {
         std::shared_ptr<Session> sess =
             sessions.find<SessionNotFound>(sess_name);
 
-        std::shared_ptr<UserSocket> user_ptr =
-            users.find<UserNotFound>(username);
+        users.find<UserNotFound>(username);
 
         user_sessions.emplace<DuplicateUser>(user_ptr->get_name(),
                                              sess->get_name());
@@ -83,9 +81,6 @@ void MessageServer::handle_client(int client_fd) {
 
         std::shared_ptr<Session> sess = sessions.emplace<DuplicateSession>(
             sess_name, std::make_shared<Session>(sess_name));
-
-        std::shared_ptr<UserSocket> user_ptr =
-            users.find<UserNotFound>(username);
 
         user_sessions.emplace<DuplicateUser>(user_ptr->get_name(),
                                              sess->get_name());
@@ -115,9 +110,6 @@ void MessageServer::handle_client(int client_fd) {
         std::shared_ptr<Session> sess =
             sessions.find<SessionNotFound>(sess_name);
 
-        std::shared_ptr<UserSocket> user_ptr =
-            users.find<UserNotFound>(username);
-
         sess->remove_user(user_ptr);
 
         if (sess->num_users() == 0) {
@@ -129,7 +121,6 @@ void MessageServer::handle_client(int client_fd) {
         break;
       }
       case tcp_method::U_SHUTDOWN: {
-        std::cout << "Got shut-down signal for user:" << username << std::endl;
         users.erase(username);
         return;
       }
@@ -138,9 +129,8 @@ void MessageServer::handle_client(int client_fd) {
         break;
       }
     } catch (TCPError &e) {
-      res_handler.send_err_res(user_sock, e);
-      // } catch (std::exception &e) {
-      //   std::cout << e.what() << std::endl;
+      std::cout << "handling error" << std::endl;
+      res_handler.send_err_res(user_ptr, e);
     }
   }
 }

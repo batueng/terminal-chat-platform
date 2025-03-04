@@ -64,8 +64,7 @@ void ClientSocket::send_len(const void *buf, int n) {
   while (tbs < n) {
     int s = send(fd, &cbuf[tbs], n - tbs, 0);
     if (s <= 0) {
-      throw std::runtime_error("failed to send " + std::to_string(n) +
-                               " bytes: " + strerror(errno));
+      break;
     }
     tbs += s;
   }

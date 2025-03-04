@@ -22,7 +22,7 @@ public:
 
   void send_leave_res(std::shared_ptr<UserSocket> user_ptr, tcp_status status);
 
-  void send_err_res(UserSocket &user_sock, TCPError &e);
+  void send_err_res(std::shared_ptr<UserSocket> user_ptr, TCPError &e);
 
 private:
 };

@@ -44,13 +44,14 @@ void ResponseHandler::send_leave_res(std::shared_ptr<UserSocket> user_ptr,
   user_ptr->send_len(&leave_hdr, sizeof(leave_hdr));
 }
 
-void ResponseHandler::send_err_res(UserSocket &user_sock, TCPError &e) {
+void ResponseHandler::send_err_res(std::shared_ptr<UserSocket> user_ptr,
+                                   TCPError &e) {
   const char *err_msg = e.what();
   size_t err_len = strlen(err_msg);
 
   tcp_hdr_t err_hdr(tcp_method::ERROR, e.get_status(), color::DEFAULT, err_len,
-                    user_sock.get_name(), "");
+                    user_ptr->get_name(), "");
 
-  user_sock.send_len(&err_hdr, sizeof(err_hdr));
-  user_sock.send_len(err_msg, err_len);
+  user_ptr->send_len(&err_hdr, sizeof(err_hdr));
+  user_ptr->send_len(err_msg, err_len);
 }

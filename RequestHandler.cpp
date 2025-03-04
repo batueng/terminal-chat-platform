@@ -1,6 +1,7 @@
 #include "RequestHandler.h"
 #include "protocol.h"
 
+#include <fstream>
 #include <iostream>
 #include <utility>
 
@@ -78,6 +79,7 @@ RequestHandler::send_join(std::string &username, std::string &session_name,
   res_cv.wait(res_lock, [&] { return !res_q.empty(); });
 
   auto [res_hdr, data] = res_q.front();
+  err_msg = data;
   res_q.pop();
 
   return {res_hdr.c, res_hdr.status};
@@ -104,6 +106,9 @@ RequestHandler::send_where(std::string &username, std::string &target_username,
 
   auto [res_hdr, data] = res_q.front();
   res_q.pop();
+
+  if (res_hdr.status != tcp_status::SUCCESS)
+    err_msg = data;
 
   return {data, res_hdr.status};
 }

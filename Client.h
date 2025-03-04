@@ -27,7 +27,7 @@ public:
 
   static void handle_signal(int signum);
 
-  static Client* instance;
+  static Client *instance;
 
 private:
   friend class RequestHandler;
@@ -45,6 +45,8 @@ private:
   color c;
 
   std::string curr_sess;
+
+  boost::mutex sess_mtx;
 
   boost::mutex msg_mtx;
 
