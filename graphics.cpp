@@ -24,7 +24,7 @@ int display_help_screen(WINDOW *win) {
   getmaxyx(win, rows, cols);
 
   int row_cnt = 0;
-  int pad_x = 0;
+  int pad_x = 1;
   int indent = 2;
   int descr_space = 4;
   std::string line = "Usage:";
