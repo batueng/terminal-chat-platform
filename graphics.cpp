@@ -105,10 +105,6 @@ void print_header(WINDOW *win) {
                         "           | |     ", "           |_|     "};
   const int logo_lines = 8;
   const int ascii_cols = 25; // Used for gradient calculation
-
-  // Clear the window and draw a border
-  werase(win);
-
   int y = 1; // Starting row (inside the border)
 
   // Center and print the header text
@@ -155,8 +151,12 @@ void redraw_home_screen(WINDOW *home_win, int height, int width,
                         int header_height, const std::string &username) {
   werase(home_win);
 
-  std::string welcome_text = "Welcome, " + username + "!";
-  mvwprintw(home_win, 1, 1, "%s", welcome_text.c_str());
+  std::string user_string = "User: ";
+  mvwprintw(home_win, 0, 1, user_string.c_str());
+
+  wattron(home_win, COLOR_PAIR(color::CYAN));
+  mvwprintw(home_win, 0, user_string.size()+1, username.c_str());
+  wattroff(home_win, COLOR_PAIR(color::CYAN));
 
   print_header(home_win);
 
@@ -170,7 +170,9 @@ void redraw_home_screen(WINDOW *home_win, int height, int width,
 
 void handle_session_resize(WINDOW *&messages_win, WINDOW *&input_win,
                            int &height, int &width, int header_height,
-                           const std::string &curr_sess) {
+                           const std::string &curr_sess,
+                           const std::string &username,
+                           color user_color) {
   clear();
   refresh();
   getmaxyx(stdscr, height, width);
@@ -197,6 +199,13 @@ void handle_session_resize(WINDOW *&messages_win, WINDOW *&input_win,
   wrefresh(input_win);
 
   int msg_width = getmaxx(messages_win);
+
+  std::string user_string = "User: ";
+  mvwprintw(messages_win, 0, 1, user_string.c_str());
+
+  wattron(messages_win, COLOR_PAIR(user_color));
+  mvwprintw(messages_win, 0, user_string.size()+1, username.c_str());
+  wattroff(messages_win, COLOR_PAIR(user_color));
 
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
   mvwprintw(messages_win, 1, (msg_width - curr_sess.size()) / 2, "%s",

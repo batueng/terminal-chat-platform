@@ -297,6 +297,13 @@ void Client::print_session_screen() {
 
   int msg_width = getmaxx(messages_win);
 
+  std::string user_string = "User: ";
+  mvwprintw(messages_win, 0, 1, user_string.c_str());
+
+  wattron(messages_win, COLOR_PAIR(c));
+  mvwprintw(messages_win, 0, user_string.size()+1, username.c_str());
+  wattroff(messages_win, COLOR_PAIR(c));
+
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
 
   int start_col = 0;
@@ -325,7 +332,7 @@ void Client::print_session_screen() {
 
       if (ch == KEY_RESIZE) {
         handle_session_resize(messages_win, input_win, height, width, 15,
-                              curr_sess);
+                              curr_sess, username, c);
         print_messages();
         continue;
       }
