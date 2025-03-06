@@ -405,7 +405,7 @@ void Client::print_messages() {
             curr_sess.c_str());
   wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
 
-  int y = 3;
+  int y = 2;
 
   std::string prev_sender = "";
   for (const auto &msg : messages) {
@@ -414,6 +414,9 @@ void Client::print_messages() {
 
     if (msg.msg_t == msg_type::CHAT) {
       if (msg.username == username) {
+        if (prev_sender != username)
+          ++y;
+
         std::string text = msg.text;
         int available_self = interiorWidth - 1;
 
@@ -429,6 +432,7 @@ void Client::print_messages() {
         int available_rec = interiorWidth - 1;
 
         if (msg.username != prev_sender) {
+          ++y;
           wattron(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
           mvwprintw(messages_win, y, 1, "%s", msg.username.c_str());
           wattroff(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
@@ -447,6 +451,7 @@ void Client::print_messages() {
         }
       }
     } else {
+      ++y;
       print_centered(messages_win, y++, interiorWidth, msg.text);
     }
   }
