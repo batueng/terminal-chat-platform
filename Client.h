@@ -69,6 +69,9 @@ private:
 
   void print_session_screen();
 
+  void print_error_message(WINDOW *win, int height, int width,
+                           std::string &err_msg);
+
   void print_messages();
 
   void msg_update_listener();

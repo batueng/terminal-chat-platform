@@ -17,7 +17,9 @@ Client *Client::instance = nullptr;
 
 Client::Client(std::string &_server_ip, int _server_port,
                std::string debug_file)
-    : req_handler(_server_ip, _server_port), fout(debug_file) {
+    : req_handler(_server_ip, _server_port),
+      fout(std::to_string((unsigned long long)(void **)this) + "_" +
+           debug_file) {
   initscr();
   use_default_colors();
   start_color();
@@ -111,11 +113,7 @@ void Client::print_login_screen() {
     if (req_handler.send_username(username, err_msg) == tcp_status::SUCCESS)
       valid_username = true;
     else {
-      mvwprintw(login_win, height - 2, 1, "%s", err_msg.c_str());
-      wclrtoeol(login_win);
-      wrefresh(login_win);
-      wgetch(login_win);
-      mvwprintw(login_win, height - 2, 1, "%*s", width - 2, " ");
+      print_error_message(login_win, height, width, err_msg);
       redraw_prompt(login_win, height, prompt_x, "");
     }
   }
@@ -201,9 +199,7 @@ void Client::print_home_screen() {
         std::string err_msg;
         auto [_c, status] = req_handler.send_join(username, arg, err_msg);
         if (status != tcp_status::SUCCESS) {
-          mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
-          mvwprintw(home_win, height - 2, 1, err_msg.c_str());
-          wrefresh(home_win);
+          print_error_message(home_win, height, width, err_msg);
         } else {
           {
             boost::unique_lock<boost::mutex> lock(sess_mtx);
@@ -220,9 +216,7 @@ void Client::print_home_screen() {
         std::string err_msg;
         auto [_c, status] = req_handler.send_create(username, arg, err_msg);
         if (status != tcp_status::SUCCESS) {
-          mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
-          mvwprintw(home_win, height - 2, 1, err_msg.c_str());
-          wrefresh(home_win);
+          print_error_message(home_win, height, width, err_msg);
         } else {
           {
             boost::unique_lock<boost::mutex> lock(sess_mtx);
@@ -241,21 +235,29 @@ void Client::print_home_screen() {
         auto [user_loc, status] =
             req_handler.send_where(username, arg, err_msg);
         if (status != tcp_status::SUCCESS) {
-
+          print_error_message(home_win, height, width, err_msg);
         } else {
-          std::string user_location = "The user is at session " + user_loc;
-          mvwprintw(home_win, height - 2, 1, user_location.c_str());
-          wrefresh(home_win);
+          std::string loc_msg = arg + " is in session " + user_loc;
+          print_error_message(home_win, height, width, loc_msg);
         }
       }
     } else if (command == "help") {
     } else if (command == "exit") {
     } else {
-      mvwprintw(home_win, height - 2, 1, "Unknown command");
-      wrefresh(home_win);
+      std::string err_msg = "Unknown command.";
+      print_error_message(home_win, height, width, err_msg);
     }
   }
   delwin(home_win);
+}
+
+void Client::print_error_message(WINDOW *win, int height, int width,
+                                 std::string &err_msg) {
+  mvwprintw(win, height - 2, 1, "%s", err_msg.c_str());
+  wclrtoeol(win);
+  wrefresh(win);
+  wgetch(win);
+  mvwprintw(win, height - 2, 1, "%*s", width - 2, " ");
 }
 
 void Client::msg_update_listener() {
@@ -342,7 +344,11 @@ void Client::print_session_screen() {
 
     if (client_message == ":leave") {
       req_handler.send_leave(username, curr_sess);
-      curr_sess.clear();
+      {
+        boost::unique_lock<boost::mutex> msg_lock(msg_mtx);
+        messages.clear();
+        curr_sess.clear();
+      }
 
       print_home_screen();
       delwin(messages_win);
@@ -350,7 +356,7 @@ void Client::print_session_screen() {
       return;
     }
 
-    Message msg = {message_type::CHAT, username, c, client_message};
+    Message msg = {msg_type::CHAT, username, c, client_message};
 
     req_handler.send_message(username, curr_sess, msg);
     queue_chat(msg);
@@ -399,42 +405,42 @@ void Client::print_messages() {
     if (y >= win_height)
       break;
 
-    if (msg.username == username) {
-      std::string text = msg.text;
-      int available_self = interiorWidth - 1;
+    if (msg.msg_t == msg_type::CHAT) {
+      if (msg.username == username) {
+        std::string text = msg.text;
+        int available_self = interiorWidth - 1;
 
-      if ((int)text.size() > available_self)
-        text = text.substr(text.size() - available_self);
+        if ((int)text.size() > available_self)
+          text = text.substr(text.size() - available_self);
 
-      int textLen = text.size();
-      int x = (interiorWidth - 1) - textLen;
-
-      mvwprintw(messages_win, y, x, "%s", text.c_str());
-      y++;
-      prev_sender = username;
-
-    } else {
-      int available_rec = interiorWidth - 1;
-
-      if (msg.username != prev_sender) {
-        wattron(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
-        mvwprintw(messages_win, y, 1, "%s", msg.username.c_str());
-        wattroff(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
-
-        mvwprintw(messages_win, y, 1 + msg.username.size(), ": %s",
-                  msg.text.c_str());
-
-        y++;
-        prev_sender = msg.username;
+        int textLen = text.size();
+        int x = (interiorWidth - 1) - textLen;
+        mvwprintw(messages_win, y++, x, "%s", text.c_str());
+        prev_sender = username;
 
       } else {
-        std::string text = msg.text;
-        if ((int)text.size() > available_rec)
-          text = text.substr(0, available_rec);
+        int available_rec = interiorWidth - 1;
 
-        mvwprintw(messages_win, y, 1, "%s", text.c_str());
-        y++;
+        if (msg.username != prev_sender) {
+          wattron(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
+          mvwprintw(messages_win, y, 1, "%s", msg.username.c_str());
+          wattroff(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
+
+          mvwprintw(messages_win, y++, 1 + msg.username.size(), ": %s",
+                    msg.text.c_str());
+
+          prev_sender = msg.username;
+
+        } else {
+          std::string text = msg.text;
+          if ((int)text.size() > available_rec)
+            text = text.substr(0, available_rec);
+
+          mvwprintw(messages_win, y++, 1, "%s", text.c_str());
+        }
       }
+    } else {
+      print_centered(messages_win, y++, interiorWidth, msg.text);
     }
   }
 

@@ -36,7 +36,7 @@ void MessageServer::handle_client(int client_fd) {
 
       switch (tcp_hdr->method) {
       case tcp_method::U_NAME: {
-        user_sock.set_name(username); // can throw InvalidUsername
+        user_ptr->set_name(username); // can throw InvalidUsername
 
         users.emplace<DuplicateUser>(username,
                                      user_ptr); // this error handling fails
@@ -72,6 +72,11 @@ void MessageServer::handle_client(int client_fd) {
         std::cout << "join session request: " << sess_name << std::endl;
 
         res_handler.send_join_res(user_ptr, tcp_status::SUCCESS);
+
+        Message msg =
+            Message{msg_type::USER_JOIN, username, user_ptr->get_color(),
+                    username + " joined the chat!"};
+        sess->queue_msg(msg);
         break;
       }
       case tcp_method::CREATE: {
@@ -92,6 +97,12 @@ void MessageServer::handle_client(int client_fd) {
         boost::thread t(&Session::handle_session, sess.get());
 
         res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
+
+        Message msg =
+            Message{msg_type::USER_CREATE, username, user_ptr->get_color(),
+                    sess_name + " created by " + username};
+        sess->queue_msg(msg);
+
         break;
       }
       case tcp_method::MESSAGE: {
@@ -112,11 +123,16 @@ void MessageServer::handle_client(int client_fd) {
 
         sess->remove_user(user_ptr);
 
+        res_handler.send_leave_res(user_ptr, tcp_status::SUCCESS);
+
         if (sess->num_users() == 0) {
           sessions.erase(sess_name);
+        } else {
+          Message msg =
+              Message{msg_type::USER_LEFT, username, user_ptr->get_color(),
+                      username + " left the chat."};
+          sess->queue_msg(msg);
         }
-
-        res_handler.send_leave_res(user_ptr, tcp_status::SUCCESS);
 
         break;
       }
@@ -129,7 +145,6 @@ void MessageServer::handle_client(int client_fd) {
         break;
       }
     } catch (TCPError &e) {
-      std::cout << "handling error" << std::endl;
       res_handler.send_err_res(user_ptr, e);
     }
   }

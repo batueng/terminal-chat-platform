@@ -90,14 +90,15 @@ struct tcp_hdr_t {
 
 // ============================= MESSAGE PROTOCOLS =============================
 
-enum class message_type : uint8_t {
+enum class msg_type : uint8_t {
   CHAT = 0,
-  USER_JOIN = 1,
-  USER_LEFT = 2,
+  USER_CREATE = 1,
+  USER_JOIN = 2,
+  USER_LEFT = 3,
 };
 
 struct Message {
-  message_type msg_t;
+  msg_type msg_t;
 
   std::string username;
 
