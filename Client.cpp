@@ -307,7 +307,7 @@ void Client::print_session_screen() {
   mvwprintw(messages_win, 0, 1, user_string.c_str());
 
   wattron(messages_win, COLOR_PAIR(c));
-  mvwprintw(messages_win, 0, user_string.size()+1, username.c_str());
+  mvwprintw(messages_win, 0, user_string.size() + 1, username.c_str());
   wattroff(messages_win, COLOR_PAIR(c));
 
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
@@ -407,7 +407,8 @@ void Client::message_listener() {
 }
 
 void Client::print_messages() {
-  if (!messages_win) return;
+  if (!messages_win)
+    return;
 
   boost::unique_lock<boost::mutex> lock(win_mtx);
 
@@ -430,14 +431,16 @@ void Client::print_messages() {
   wattroff(messages_win, COLOR_PAIR(c));
 
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
-  mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s", curr_sess.c_str());
+  mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s",
+            curr_sess.c_str());
   wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
 
   int y = 3;
   std::string prev_sender = "";
 
   for (const auto &msg : messages) {
-    if (y >= win_height) break;
+    if (y >= win_height)
+      break;
 
     if (msg.msg_t == msg_type::CHAT) {
       bool is_self = (msg.username == username);
@@ -463,7 +466,9 @@ void Client::print_messages() {
       std::istringstream stream(text);
 
       while (stream >> word) {
-        if (current_line.size() + word.size() + (current_line.empty() ? 0 : 1) <= max_msg_width) {
+        if (current_line.size() + word.size() +
+                (current_line.empty() ? 0 : 1) <=
+            max_msg_width) {
           if (!current_line.empty())
             current_line += " ";
           current_line += word;
@@ -476,7 +481,8 @@ void Client::print_messages() {
         lines.push_back(current_line);
 
       for (const auto &line : lines) {
-        if (y >= win_height) break;
+        if (y >= win_height)
+          break;
 
         if (is_self) {
           int line_x = win_width - line.size() - 2;
