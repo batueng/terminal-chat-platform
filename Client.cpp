@@ -58,6 +58,7 @@ void Client::on_signal(int signum) {
     close(fd);
   }
 
+  flushinp();
   ungetch('\n');
 }
 
@@ -67,6 +68,7 @@ void Client::print_login_screen() {
 
   login_win = newwin(height, width, 0, 0);
   keypad(login_win, TRUE);
+  wtimeout(login_win, 100);
   print_header(login_win);
   mvwprintw(login_win, height - 1, 1, "Enter your username: ");
   wrefresh(login_win);
@@ -129,6 +131,7 @@ void Client::print_home_screen() {
 
   home_win = newwin(height, width, 0, 0);
   keypad(home_win, TRUE);
+  wtimeout(home_win, 100);
   cbreak();
   noecho();
   curs_set(1);
@@ -287,6 +290,9 @@ void Client::print_session_screen() {
   messages_win = newwin(height - 2, width, 0, 0);
   input_win = newwin(2, width, height - 2, 0);
 
+  keypad(input_win, TRUE);
+  wtimeout(input_win, 100);
+
   scrollok(messages_win, TRUE);
 
   werase(messages_win);
@@ -405,7 +411,6 @@ void Client::print_messages() {
 
   boost::unique_lock<boost::mutex> lock(win_mtx);
 
-  // Save the cursor position from the input window
   int in_y = 0, in_x = 0;
   if (input_win) {
     getyx(input_win, in_y, in_x);
@@ -415,7 +420,7 @@ void Client::print_messages() {
 
   int win_width = getmaxx(messages_win);
   int win_height = getmaxy(messages_win);
-  int max_msg_width = win_width / 2;  // Max width for wrapped messages
+  int max_msg_width = win_width / 2;
 
   std::string user_string = "User: ";
   mvwprintw(messages_win, 0, 1, user_string.c_str());
@@ -438,16 +443,14 @@ void Client::print_messages() {
       bool is_self = (msg.username == username);
       color msg_color = is_self ? c : msg.color;
 
-      // Print username if different from the previous sender
       if (msg.username != prev_sender) {
         ++y;
         wattron(messages_win, COLOR_PAIR(msg_color));
 
         if (is_self) {
-          int name_x = win_width - msg.username.size() - 2;  // Right-align username
+          int name_x = win_width - msg.username.size() - 2;
           mvwprintw(messages_win, y++, name_x, "%s", msg.username.c_str());
         } else {
-          mvwprintw(messages_win, y++, 1, "%s", msg.username.c_str());  // Left-align username
         }
 
         wattroff(messages_win, COLOR_PAIR(msg_color));
@@ -459,7 +462,6 @@ void Client::print_messages() {
       std::string word, current_line;
       std::istringstream stream(text);
 
-      // Split message into words and wrap properly without breaking words
       while (stream >> word) {
         if (current_line.size() + word.size() + (current_line.empty() ? 0 : 1) <= max_msg_width) {
           if (!current_line.empty())
@@ -477,15 +479,14 @@ void Client::print_messages() {
         if (y >= win_height) break;
 
         if (is_self) {
-          int line_x = win_width - line.size() - 2;  // Right-align message
+          int line_x = win_width - line.size() - 2;
           mvwprintw(messages_win, y++, line_x, "%s", line.c_str());
         } else {
-          mvwprintw(messages_win, y++, 1, "%s", line.c_str());  // Left-align message
+          mvwprintw(messages_win, y++, 1, "%s", line.c_str());
         }
       }
 
     } else {
-      // Center non-chat messages
       ++y;
       print_centered(messages_win, y++, win_width, msg.text);
     }
@@ -493,7 +494,6 @@ void Client::print_messages() {
 
   wrefresh(messages_win);
 
-  // Restore the input window's cursor position
   if (input_win) {
     wmove(input_win, in_y, in_x);
     wrefresh(input_win);
