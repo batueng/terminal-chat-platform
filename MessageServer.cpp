@@ -74,7 +74,7 @@ void MessageServer::handle_client(int client_fd) {
         res_handler.send_join_res(user_ptr, tcp_status::SUCCESS);
 
         Message msg =
-            Message{msg_type::USER_JOIN, username, user_ptr->get_color(),
+            Message{msg_type::USER_JOIN, SERVER_UNAME, user_ptr->get_color(),
                     username + " joined the chat!"};
         sess->queue_msg(msg);
         break;
@@ -99,7 +99,7 @@ void MessageServer::handle_client(int client_fd) {
         res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
 
         Message msg =
-            Message{msg_type::USER_CREATE, username, user_ptr->get_color(),
+            Message{msg_type::USER_CREATE, SERVER_UNAME, user_ptr->get_color(),
                     sess_name + " created by " + username};
         sess->queue_msg(msg);
 
@@ -129,7 +129,7 @@ void MessageServer::handle_client(int client_fd) {
           sessions.erase(sess_name);
         } else {
           Message msg =
-              Message{msg_type::USER_LEFT, username, user_ptr->get_color(),
+              Message{msg_type::USER_LEFT, SERVER_UNAME, user_ptr->get_color(),
                       username + " left the chat."};
           sess->queue_msg(msg);
         }

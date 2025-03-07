@@ -454,6 +454,7 @@ void Client::print_messages() {
           int name_x = win_width - msg.username.size() - 2;
           mvwprintw(messages_win, y++, name_x, "%s", msg.username.c_str());
         } else {
+          mvwprintw(messages_win, y++, 1, "%s", msg.username.c_str());
         }
 
         wattroff(messages_win, COLOR_PAIR(msg_color));
