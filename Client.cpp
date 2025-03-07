@@ -405,6 +405,12 @@ void Client::print_messages() {
 
   boost::unique_lock<boost::mutex> lock(win_mtx);
 
+  // Save the cursor position from the input window
+  int in_y = 0, in_x = 0;
+  if (input_win) {
+    getyx(input_win, in_y, in_x);
+  }
+
   werase(messages_win);
 
   int win_width = getmaxx(messages_win);
@@ -453,17 +459,19 @@ void Client::print_messages() {
       std::string word, current_line;
       std::istringstream stream(text);
 
-      // Split message into words and wrap properly
+      // Split message into words and wrap properly without breaking words
       while (stream >> word) {
-        if (current_line.size() + word.size() + 1 <= max_msg_width) {
-          if (!current_line.empty()) current_line += " ";
+        if (current_line.size() + word.size() + (current_line.empty() ? 0 : 1) <= max_msg_width) {
+          if (!current_line.empty())
+            current_line += " ";
           current_line += word;
         } else {
           lines.push_back(current_line);
           current_line = word;
         }
       }
-      if (!current_line.empty()) lines.push_back(current_line);
+      if (!current_line.empty())
+        lines.push_back(current_line);
 
       for (const auto &line : lines) {
         if (y >= win_height) break;
@@ -484,8 +492,13 @@ void Client::print_messages() {
   }
 
   wrefresh(messages_win);
-}
 
+  // Restore the input window's cursor position
+  if (input_win) {
+    wmove(input_win, in_y, in_x);
+    wrefresh(input_win);
+  }
+}
 
 void Client::run() {
   boost::thread updt_listener(&Client::msg_update_listener, this);
