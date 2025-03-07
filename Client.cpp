@@ -316,14 +316,13 @@ void Client::print_session_screen() {
   wrefresh(messages_win);
 
   std::string client_message;
-
+  int prompt_x = 3;
   while (g_running) {
     werase(input_win);
-    redraw_session_prompt(input_win, 4, "");
+    redraw_session_prompt(input_win, prompt_x, "");
 
     std::string line;
     int ch;
-    int prompt_x = 4;
 
     while (g_running) {
       redraw_session_prompt(input_win, prompt_x, line);
@@ -400,6 +399,13 @@ void Client::print_messages() {
   int win_height = getmaxy(messages_win);
   int interiorWidth = win_width;
 
+  std::string user_string = "User: ";
+  mvwprintw(messages_win, 0, 1, user_string.c_str());
+
+  wattron(messages_win, COLOR_PAIR(c));
+  mvwprintw(messages_win, 0, user_string.size()+1, username.c_str());
+  wattroff(messages_win, COLOR_PAIR(c));
+
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
   mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s",
             curr_sess.c_str());
@@ -414,6 +420,9 @@ void Client::print_messages() {
 
     if (msg.msg_t == msg_type::CHAT) {
       if (msg.username == username) {
+        if (msg.username != prev_sender) {
+          ++y;
+        }
         std::string text = msg.text;
         int available_self = interiorWidth - 1;
 
@@ -429,6 +438,7 @@ void Client::print_messages() {
         int available_rec = interiorWidth - 1;
 
         if (msg.username != prev_sender) {
+          ++y;
           wattron(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
           mvwprintw(messages_win, y, 1, "%s", msg.username.c_str());
           wattroff(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
@@ -447,13 +457,12 @@ void Client::print_messages() {
         }
       }
     } else {
+      ++y;
       print_centered(messages_win, y++, interiorWidth, msg.text);
     }
   }
 
   wrefresh(messages_win);
-  wmove(input_win, 1, 4);
-  wrefresh(input_win);
 }
 
 void Client::run() {

@@ -225,7 +225,7 @@ void redraw_prompt(WINDOW *win, int height, int prompt_x,
 
 void redraw_session_prompt(WINDOW *input_win, int prompt_x,
                            const std::string &line) {
-  mvwprintw(input_win, 1, 2, "> ");
+  mvwprintw(input_win, 1, 1, "> ");
   wclrtoeol(input_win);
   mvwprintw(input_win, 1, prompt_x, "%s", line.c_str());
   wmove(input_win, 1, prompt_x + static_cast<int>(line.size()));
