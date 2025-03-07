@@ -54,7 +54,7 @@ void Client::on_signal(int signum) {
   msg_cv.notify_all();
 
   int fd = req_handler.client_sock.fd;
-  if (fd != -1) {
+  if (fd > 0) {
     close(fd);
   }
 
