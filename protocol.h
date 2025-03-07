@@ -97,7 +97,7 @@ enum class msg_type : uint8_t {
   USER_LEFT = 3,
 };
 
-constexpr std::string SERVER_UNAME = "server";
+const std::string SERVER_UNAME = "server";
 
 struct Message {
   msg_type msg_t;

@@ -144,7 +144,6 @@ void Client::print_home_screen() {
   int ch;
 
   while (g_running) {
-    mvwprintw(home_win, height - 2, 1, "%*s", width - 2, " ");
     wrefresh(home_win);
 
     line.clear();
@@ -260,7 +259,6 @@ void Client::print_error_message(WINDOW *win, int height, int width,
   wclrtoeol(win);
   wrefresh(win);
   wgetch(win);
-  mvwprintw(win, height - 2, 1, "%*s", width - 2, " ");
 }
 
 void Client::msg_update_listener() {
