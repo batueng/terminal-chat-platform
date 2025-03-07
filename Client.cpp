@@ -409,73 +409,83 @@ void Client::print_messages() {
 
   int win_width = getmaxx(messages_win);
   int win_height = getmaxy(messages_win);
-  int interiorWidth = win_width;
+  int max_msg_width = win_width / 2;  // Max width for wrapped messages
 
   std::string user_string = "User: ";
   mvwprintw(messages_win, 0, 1, user_string.c_str());
 
   wattron(messages_win, COLOR_PAIR(c));
-  mvwprintw(messages_win, 0, user_string.size()+1, username.c_str());
+  mvwprintw(messages_win, 0, user_string.size() + 1, username.c_str());
   wattroff(messages_win, COLOR_PAIR(c));
 
   wattron(messages_win, COLOR_PAIR(1) | A_BOLD);
-  mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s",
-            curr_sess.c_str());
+  mvwprintw(messages_win, 1, (win_width - curr_sess.size()) / 2, "%s", curr_sess.c_str());
   wattroff(messages_win, COLOR_PAIR(1) | A_BOLD);
 
   int y = 3;
-
   std::string prev_sender = "";
+
   for (const auto &msg : messages) {
-    if (y >= win_height)
-      break;
+    if (y >= win_height) break;
 
     if (msg.msg_t == msg_type::CHAT) {
-      if (msg.username == username) {
-        if (msg.username != prev_sender) {
-          ++y;
-        }
-        std::string text = msg.text;
-        int available_self = interiorWidth - 1;
+      bool is_self = (msg.username == username);
+      color msg_color = is_self ? c : msg.color;
 
-        if ((int)text.size() > available_self)
-          text = text.substr(text.size() - available_self);
+      // Print username if different from the previous sender
+      if (msg.username != prev_sender) {
+        ++y;
+        wattron(messages_win, COLOR_PAIR(msg_color));
 
-        int textLen = text.size();
-        int x = (interiorWidth - 1) - textLen;
-        mvwprintw(messages_win, y++, x, "%s", text.c_str());
-        prev_sender = username;
-
-      } else {
-        int available_rec = interiorWidth - 1;
-
-        if (msg.username != prev_sender) {
-          ++y;
-          wattron(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
-          mvwprintw(messages_win, y, 1, "%s", msg.username.c_str());
-          wattroff(messages_win, COLOR_PAIR(static_cast<uint8_t>(msg.color)));
-
-          mvwprintw(messages_win, y++, 1 + msg.username.size(), ": %s",
-                    msg.text.c_str());
-
-          prev_sender = msg.username;
-
+        if (is_self) {
+          int name_x = win_width - msg.username.size() - 2;  // Right-align username
+          mvwprintw(messages_win, y++, name_x, "%s", msg.username.c_str());
         } else {
-          std::string text = msg.text;
-          if ((int)text.size() > available_rec)
-            text = text.substr(0, available_rec);
+          mvwprintw(messages_win, y++, 1, "%s", msg.username.c_str());  // Left-align username
+        }
 
-          mvwprintw(messages_win, y++, 1, "%s", text.c_str());
+        wattroff(messages_win, COLOR_PAIR(msg_color));
+        prev_sender = msg.username;
+      }
+
+      std::string text = msg.text;
+      std::vector<std::string> lines;
+      std::string word, current_line;
+      std::istringstream stream(text);
+
+      // Split message into words and wrap properly
+      while (stream >> word) {
+        if (current_line.size() + word.size() + 1 <= max_msg_width) {
+          if (!current_line.empty()) current_line += " ";
+          current_line += word;
+        } else {
+          lines.push_back(current_line);
+          current_line = word;
         }
       }
+      if (!current_line.empty()) lines.push_back(current_line);
+
+      for (const auto &line : lines) {
+        if (y >= win_height) break;
+
+        if (is_self) {
+          int line_x = win_width - line.size() - 2;  // Right-align message
+          mvwprintw(messages_win, y++, line_x, "%s", line.c_str());
+        } else {
+          mvwprintw(messages_win, y++, 1, "%s", line.c_str());  // Left-align message
+        }
+      }
+
     } else {
+      // Center non-chat messages
       ++y;
-      print_centered(messages_win, y++, interiorWidth, msg.text);
+      print_centered(messages_win, y++, win_width, msg.text);
     }
   }
 
   wrefresh(messages_win);
 }
+
 
 void Client::run() {
   boost::thread updt_listener(&Client::msg_update_listener, this);
