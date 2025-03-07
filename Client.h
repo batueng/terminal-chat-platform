@@ -48,6 +48,8 @@ private:
 
   boost::mutex sess_mtx;
 
+  boost::mutex win_mtx;
+
   boost::mutex msg_mtx;
 
   boost::condition_variable msg_cv;

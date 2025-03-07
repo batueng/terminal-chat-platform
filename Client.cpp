@@ -318,21 +318,28 @@ void Client::print_session_screen() {
   std::string client_message;
   int prompt_x = 3;
   while (g_running) {
-    werase(input_win);
-    redraw_session_prompt(input_win, prompt_x, "");
-
+    {
+      boost::unique_lock<boost::mutex> lock(win_mtx);
+      werase(input_win);
+      redraw_session_prompt(input_win, prompt_x, "");
+    }
     std::string line;
     int ch;
 
     while (g_running) {
-      redraw_session_prompt(input_win, prompt_x, line);
-
+      {
+        boost::unique_lock<boost::mutex> lock(win_mtx);
+        redraw_session_prompt(input_win, prompt_x, line);
+      }
       ch = wgetch(input_win);
 
       if (ch == KEY_RESIZE) {
-        handle_session_resize(messages_win, input_win, height, width, 15,
-                              curr_sess, username, c);
-        print_messages();
+        {
+          boost::unique_lock<boost::mutex> lock(win_mtx);
+          handle_session_resize(messages_win, input_win, height, width, 15,
+                                curr_sess, username, c);
+          print_messages();
+        }
         continue;
       }
 
@@ -356,9 +363,12 @@ void Client::print_session_screen() {
         curr_sess.clear();
       }
 
-      print_home_screen();
-      delwin(messages_win);
-      delwin(input_win);
+      {
+        boost::unique_lock<boost::mutex> lock(win_mtx);
+        print_home_screen();
+        delwin(messages_win);
+        delwin(input_win);
+      }
       return;
     }
 
@@ -391,7 +401,9 @@ void Client::message_listener() {
 }
 
 void Client::print_messages() {
-  boost::unique_lock<boost::mutex> lock(cout_mtx);
+  if (!messages_win) return;
+
+  boost::unique_lock<boost::mutex> lock(win_mtx);
 
   werase(messages_win);
 
