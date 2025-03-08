@@ -34,7 +34,7 @@ public:
   }
 
   void erase(const K &key) {
-    boost::shared_lock<boost::shared_mutex> lock(mtx);
+    boost::unique_lock<boost::shared_mutex> lock(mtx);
     data.erase(key);
   }
 
