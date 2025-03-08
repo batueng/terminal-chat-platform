@@ -94,7 +94,7 @@ void MessageServer::handle_client(int client_fd) {
 
         std::cout << "create session request: " << sess_name << std::endl;
 
-        boost::thread t(&Session::handle_session, sess.get());
+        boost::thread t(&Session::handle_session, sess);
 
         res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
 
