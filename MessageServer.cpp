@@ -84,6 +84,10 @@ void MessageServer::handle_client(int client_fd) {
           throw InvalidSessionName(sess_name);
         }
 
+        std::cout << "create session request: " << sess_name << std::endl;
+
+        res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
+
         std::shared_ptr<Session> sess = sessions.emplace<DuplicateSession>(
             sess_name, std::make_shared<Session>(sess_name));
 
@@ -92,11 +96,7 @@ void MessageServer::handle_client(int client_fd) {
 
         sess->add_user(user_ptr);
 
-        std::cout << "create session request: " << sess_name << std::endl;
-
         boost::thread t(&Session::handle_session, sess);
-
-        res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
 
         Message msg =
             Message{msg_type::USER_CREATE, SERVER_UNAME, user_ptr->get_color(),
