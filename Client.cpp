@@ -17,9 +17,7 @@ Client *Client::instance = nullptr;
 
 Client::Client(std::string &_server_ip, int _server_port,
                std::string debug_file)
-    : req_handler(_server_ip, _server_port),
-      fout(std::to_string((unsigned long long)(void **)this) + "_" +
-           debug_file) {
+    : req_handler(_server_ip, _server_port), fout(debug_file) {
   initscr();
   use_default_colors();
   start_color();
@@ -224,7 +222,6 @@ void Client::print_home_screen() {
             boost::unique_lock<boost::mutex> lock(sess_mtx);
             c = _c;
             curr_sess = arg;
-            fout << curr_sess << std::endl;
           }
 
           delwin(home_win);

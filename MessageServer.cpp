@@ -86,8 +86,6 @@ void MessageServer::handle_client(int client_fd) {
 
         std::cout << "create session request: " << sess_name << std::endl;
 
-        res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
-
         std::shared_ptr<Session> sess = sessions.emplace<DuplicateSession>(
             sess_name, std::make_shared<Session>(sess_name));
 
@@ -103,6 +101,7 @@ void MessageServer::handle_client(int client_fd) {
                     sess_name + " created by " + username};
         sess->queue_msg(msg);
 
+        res_handler.send_create_res(user_ptr, tcp_status::SUCCESS);
         break;
       }
       case tcp_method::MESSAGE: {
